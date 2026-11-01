@@ -171,3 +171,5 @@ Never silently change an Accepted decision — add a new ADR that supersedes it.
 - **Advantages:** Simple to set up; prices and the tier are snapshotted per line; discounts still work on top.
 - **Disadvantages:** Only two price levels; any cashier can sell at wholesale prices to anyone (mitigated by the tier being recorded on every sale and line).
 - **Implications:** If wholesale abuse becomes a concern, restrict `setPriceTier` to admins or to wholesale customers (new ADR). Quantity breaks (option c) would replace `unitPriceFor()` with a lookup table.
+
+**ADR-0018 amendment (2026-11-01):** the "Sale complete" view now shows an animated on-screen receipt printer (`<x-receipt-printer>`), inspired by a public UI experiment the owner pointed to (dqnamo.com/experiments/receipt-printer). It was rebuilt here with CSS keyframes and Alpine instead of React/Motion, so no dependency was added. It is decorative: real printing still uses the receipt page, and the cashier can start the next sale without waiting for the animation.

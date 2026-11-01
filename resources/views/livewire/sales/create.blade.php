@@ -418,37 +418,40 @@
         </form>
     </x-modal>
 
-    {{-- ===================== Sale complete ===================== --}}
+    {{-- ===================== Sale complete: animated receipt printer ===================== --}}
     @if ($this->completedSale)
         @php $done = $this->completedSale; @endphp
-        <div class="fixed inset-0 z-50 grid place-items-center bg-brand/85 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="sale-complete-title"
+        <div wire:key="sale-complete-{{ $done->id }}" class="fixed inset-0 z-50 overflow-y-auto bg-brand/90 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="sale-complete-title"
              x-data x-init="$nextTick(() => $refs.next.focus())">
-            <div class="w-full max-w-md rounded-3xl bg-white p-8 text-center shadow-2xl">
-                <span class="mx-auto grid size-16 place-items-center rounded-full bg-emerald-100 text-emerald-700"><x-icon name="check" class="size-8" /></span>
-                <h2 id="sale-complete-title" class="mt-4 text-2xl font-extrabold">Sale complete</h2>
-                <p class="mt-1 font-mono text-slate-500">{{ $done->receipt_number }}{{ $done->customer ? ' · '.$done->customer->name : '' }}</p>
+            <div class="mx-auto grid min-h-full max-w-3xl items-start gap-6 px-4 py-8 md:grid-cols-[minmax(0,1fr)_280px] md:items-center">
+                <x-receipt-printer :sale="$done" :change-due="$changeDue" />
 
-                <dl class="mt-6 grid gap-2 rounded-2xl bg-slate-50 p-4 text-sm tabular-nums">
-                    <div class="flex justify-between"><dt class="text-slate-500">Total</dt><dd class="font-bold">{{ $done->money('total') }}</dd></div>
-                    <div class="flex justify-between"><dt class="text-slate-500">Paid</dt><dd class="font-bold">{{ $done->money('paid') }}</dd></div>
-                    @if ($done->balancePesewas() > 0)
-                        <div class="flex justify-between text-amber-700"><dt>On credit</dt><dd class="font-bold">{{ $done->money('balance') }}</dd></div>
+                <div class="rounded-3xl bg-white p-6 text-center shadow-2xl md:sticky md:top-8">
+                    <span class="mx-auto grid size-12 place-items-center rounded-full bg-emerald-100 text-emerald-700"><x-icon name="check" class="size-6" /></span>
+                    <h2 id="sale-complete-title" class="mt-3 text-xl font-extrabold">Sale complete</h2>
+                    <p class="mt-0.5 font-mono text-sm text-slate-500">{{ $done->receipt_number }}{{ $done->customer ? ' · '.$done->customer->name : '' }}</p>
+
+                    @if ($changeDue > 0)
+                        <div class="mt-4 rounded-2xl bg-emerald-50 p-4 ring-1 ring-emerald-200">
+                            <p class="text-sm font-semibold text-emerald-800">Change due</p>
+                            <p class="text-3xl font-extrabold text-emerald-700 tabular-nums">{{ App\Support\Money::format($changeDue) }}</p>
+                        </div>
+                    @elseif ($done->balancePesewas() > 0)
+                        <div class="mt-4 rounded-2xl bg-amber-50 p-4 ring-1 ring-amber-200">
+                            <p class="text-sm font-semibold text-amber-800">On credit</p>
+                            <p class="text-3xl font-extrabold text-amber-700 tabular-nums">{{ $done->money('balance') }}</p>
+                        </div>
+                    @else
+                        <p class="mt-4 rounded-2xl bg-slate-50 p-3 text-sm font-semibold text-slate-600">Paid in full · {{ $done->money('paid') }}</p>
                     @endif
-                </dl>
 
-                @if ($changeDue > 0)
-                    <div class="mt-4 rounded-2xl bg-emerald-50 p-4 ring-1 ring-emerald-200">
-                        <p class="text-sm font-semibold text-emerald-800">Change due</p>
-                        <p class="text-4xl font-extrabold text-emerald-700 tabular-nums">{{ App\Support\Money::format($changeDue) }}</p>
+                    <div class="mt-5 grid gap-2">
+                        <x-button size="lg" icon="plus" wire:click="newSale" x-ref="next" block>New sale</x-button>
+                        <a href="{{ route('sales.show', $done) }}" target="_blank" rel="noopener"
+                           class="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-5 text-sm font-bold text-slate-700 hover:bg-slate-50 focus:outline-none focus-visible:ring-4 focus-visible:ring-slate-400/30">
+                            <x-icon name="receipt" class="size-4" /> Print receipt
+                        </a>
                     </div>
-                @endif
-
-                <div class="mt-6 grid gap-2 sm:grid-cols-2">
-                    <a href="{{ route('sales.show', $done) }}" target="_blank" rel="noopener"
-                       class="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-5 text-sm font-bold text-slate-700 hover:bg-slate-50 focus:outline-none focus-visible:ring-4 focus-visible:ring-slate-400/30">
-                        <x-icon name="receipt" class="size-4" /> Print receipt
-                    </a>
-                    <x-button size="lg" icon="plus" wire:click="newSale" x-ref="next">New sale</x-button>
                 </div>
             </div>
         </div>

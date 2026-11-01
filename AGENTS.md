@@ -130,7 +130,7 @@ Create a listed-but-missing doc (see `docs/README.md`) when the first feature it
 
 ```sh
 composer run dev                         # server + Vite + queue + logs
-php artisan test --compact               # all tests (197 passing)
+php artisan test --compact               # all tests (198 passing)
 php artisan test --compact --filter=Name # narrow run
 vendor/bin/pint --dirty --format agent   # format changed PHP files (required before finishing)
 php artisan storage:link                 # once per machine, for product photos

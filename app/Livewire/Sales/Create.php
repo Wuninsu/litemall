@@ -533,7 +533,7 @@ class Create extends Component
     #[Computed]
     public function completedSale(): ?Sale
     {
-        return $this->completedSaleId ? Sale::query()->with('customer')->find($this->completedSaleId) : null;
+        return $this->completedSaleId ? Sale::query()->with(['customer', 'seller', 'lines'])->find($this->completedSaleId) : null;
     }
 
     /**

@@ -17,7 +17,7 @@ composer test                                               # config:clear then 
 vendor/bin/phpunit                                          # direct runner, same arguments
 ```
 
-Current result (2026-11-01): **197 tests, 810 assertions, all passing** (also verified with no `public/build` present).
+Current result (2026-11-01): **198 tests, all passing** (also verified with no `public/build` present).
 
 ## Test map
 
@@ -39,7 +39,7 @@ Current result (2026-11-01): **197 tests, 810 assertions, all passing** (also ve
 | `tests/Unit/SaleStatusTest.php` | Status from total vs paid; labels |
 | `tests/Feature/Services/SaleServiceTest.php` | Walk-in paid sale (snapshot, stock, payment, allocation); credit with part payment; no payment; walk-in must pay full; overpayment; method required; stock, inactive product/customer, empty and zero-quantity lines (with rollback); merged lines; amount and % discounts; half-up rounding; cashier limit vs admin; 100% discount; later price change does not alter sale; sequential receipts with no gap after a failed sale; idempotency |
 | `tests/Feature/Services/PaymentServiceTest.php` | Oldest-first across three sales (worked example); preview = saved split; exact settlement; zero/negative/over-balance refused; nothing owed; other customers untouched; idempotency |
-| `tests/Feature/Sales/SalesScreensTest.php` | Guest redirect; cashier rings up a walk-in sale end to end on the POS (completion screen, New sale resets); cash change and quick-cash amounts; non-cash overpayment refused; Enter adds by exact SKU and category chips filter; steppers respect stock; Charge opens the payment dialog pre-filled with the total; walk-in default; new customer from the POS modal (pre-fill, create, select, sell on credit, duplicate number); credit needs a customer (phone search); cashier discount limit; out-of-stock product; receipt page content; sales list filters and totals |
+| `tests/Feature/Sales/SalesScreensTest.php` | Guest redirect; cashier rings up a walk-in sale end to end on the POS (completion screen, New sale resets); receipt printer shows the real sale; cash change and quick-cash amounts; non-cash overpayment refused; Enter adds by exact SKU and category chips filter; steppers respect stock; Charge opens the payment dialog pre-filled with the total; walk-in default; new customer from the POS modal (pre-fill, create, select, sell on credit, duplicate number); credit needs a customer (phone search); cashier discount limit; out-of-stock product; receipt page content; sales list filters and totals |
 | `tests/Feature/Sales/WholesalePricingTest.php` | `unitPriceFor` rules; wholesale sale with mixed lines (wholesale, below minimum, no wholesale price); retail by default; later wholesale price change does not alter sale; wholesale customer switches the POS and totals; manual switch and walk-in back to retail; admin wholesale price validation and clearing; service rejects wholesale above retail; wholesale customers from Customers page and POS; receipt and list show wholesale |
 | `tests/Feature/Payments/PaymentsScreenTest.php` | Receive payment with preview via `?customer=`; only owing customers offered; validation and overpayment; full-balance button and `?receive=1`; customers balance column and owing filter; dashboard money figures |
 | `tests/Feature/Components/ButtonTest.php` | `x-button` rendering: plain button, loader wiring for `wire:click` (with escaped arguments), submit + `loading-text`, submit without target, loader off, link mode |

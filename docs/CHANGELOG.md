@@ -13,6 +13,7 @@ All notable changes to this project are recorded here. Newest entries at the top
   - `PriceTier` enum, `Product::unitPriceFor()`, migration `2026_11_01_211833_add_wholesale_pricing`, demo wholesale prices and a wholesale customer.
   - 10 new tests (197 total).
 - Phase 3 — Sales and payments (2026-11-01):
+  - Animated on-screen receipt printer on the POS "Sale complete" view (`<x-receipt-printer>`): the real receipt is fed out of a printer slot in steps, with Replay; respects reduced motion.
   - POS checkout: payment method and amount received moved into a "Take payment" dialog opened by the "Charge" button (amount pre-filled with the total).
   - POS customer card: "Walk-in customer" whenever none is chosen, with Choose (search) and New (modal that creates and selects the customer without leaving the POS).
   - Full-screen point of sale at `/sales/new` (ADR-0018): product grid with photos and categories, scan/search with Enter to add, cart steppers, payment tiles, cash received with quick-cash buttons and change due, "Sale complete" screen with Print receipt / New sale.

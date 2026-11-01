@@ -56,6 +56,29 @@ class SalesScreensTest extends TestCase
             ->assertDontSee('Sale complete');
     }
 
+    public function test_sale_complete_shows_the_receipt_printer_with_the_real_sale(): void
+    {
+        $this->actingAs(User::factory()->cashier()->create(['name' => 'Kofi Boateng']));
+        $fan = Product::factory()->priced(45000)->create(['name' => 'Binatone Fan', 'stock_quantity' => 10]);
+
+        Livewire::test(Create::class)
+            ->call('addProduct', $fan->id)
+            ->call('increment', $fan->id)
+            ->call('setPaymentAmount', 100000)
+            ->call('complete')
+            ->assertHasNoErrors()
+            ->assertSee('Printing the receipt')
+            ->assertSee('receipt-paper', false)
+            ->assertSee('clip-path: polygon(', false)
+            ->assertSee('Binatone Fan')
+            ->assertSee('2 × 450.00')
+            ->assertSee('Kofi Boateng')
+            ->assertSee('Walk-in')
+            ->assertSee('Change')
+            ->assertSee('GH₵ 100.00')
+            ->assertSee('Replay');
+    }
+
     public function test_cash_over_the_total_is_given_back_as_change(): void
     {
         $this->actingAs(User::factory()->cashier()->create());
