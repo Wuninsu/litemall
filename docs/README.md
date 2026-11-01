@@ -24,6 +24,9 @@ Documentation describes **implemented** behaviour. Anything planned is explicitl
 | [BUSINESS_RULES.md](BUSINESS_RULES.md) | Enforced business rules and where |
 | [LIVEWIRE_COMPONENTS.md](LIVEWIRE_COMPONENTS.md) | Every component, layout and form object |
 | [UUID_STRATEGY.md](UUID_STRATEGY.md) | UUID primary key rules |
+| [FINANCIAL_LOGIC.md](FINANCIAL_LOGIC.md) | Money representation (pesewas), price rules, GH₵ examples |
+| [modules/customers.md](modules/customers.md) | Customers module |
+| [modules/products.md](modules/products.md) | Products module |
 | [SECURITY.md](SECURITY.md) | Security controls, assumptions, gaps |
 | [TESTING_GUIDE.md](TESTING_GUIDE.md) | How to run and write tests |
 | [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) | Requirements and deployment procedure |
@@ -38,7 +41,6 @@ These are required by `prompt.md` but intentionally do not exist yet, because th
 
 | Document | Create when… |
 |---|---|
-| FINANCIAL_LOGIC.md | the first money calculation is implemented (also add financial rules to BUSINESS_RULES.md) |
 | SALES_MANAGEMENT.md, modules/sales.md | sales are implemented |
 | PAYMENT_SYSTEM.md, modules/payments.md | payments are implemented |
 | PROMOTIONS_SYSTEM.md, modules/promotions.md | promotions are implemented |
@@ -47,4 +49,3 @@ These are required by `prompt.md` but intentionally do not exist yet, because th
 | BULK_IMPORTS.md | any import is implemented |
 | OFFLINE_READINESS.md | any offline-related code (device ids, idempotency keys, sync) is added |
 | API_DOCUMENTATION.md | the first API route is added |
-| modules/customers.md, modules/products.md | customers / products are implemented |

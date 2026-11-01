@@ -6,7 +6,7 @@ Primary instructions for AI coding agents working on this repository. Keep this 
 
 ## 1. Project overview
 
-"Mall" is a staff-only sales, customer-credit and payments application priced in Ghana Cedis (GHS). **Built so far (Phase 1):** custom authentication (sign-in, sign-out, password reset), Admin/Cashier roles, and admin user management. Customers, products, sales and payments are not built yet. Read [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md) before starting any task.
+"Mall" is a staff-only sales, customer-credit and payments application priced in Ghana Cedis (GHS). **Built so far (Phases 1–2):** custom authentication, Admin/Cashier roles, user management, customers and products. Sales and payments are not built yet. Read [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md) before starting any task.
 
 ## 2. Technology stack (installed, verified)
 
@@ -39,15 +39,16 @@ app/Enums                  backed enums (UserRole)
 app/Exceptions             DomainException + Auth/, Users/ subclasses
 app/Http/Controllers       LogoutController (only non-Livewire endpoint)
 app/Http/Middleware        EnsureUserIsActive (alias `active`)
-app/Livewire               components by area (Auth/, Users/), Forms/ for form objects
+app/Livewire               components by area (Auth/, Users/, Customers/, Products/), Forms/ for form objects
 resources/views/components shared Blade UI: x-icon, x-input, x-button, x-modal, x-nav-link
-app/Models                 Eloquent models (User)
-app/Policies               UserPolicy
-app/Services               UserService, Auth/LoginService, Auth/PasswordResetService
+app/Models                 Eloquent models (User, Customer, Product)
+app/Support                stateless helpers: Money (cedis ↔ pesewas), PhoneNumber (Ghana → +233…)
+app/Policies               UserPolicy, CustomerPolicy, ProductPolicy
+app/Services               UserService, CustomerService, ProductService, Auth/LoginService, Auth/PasswordResetService
 resources/views/layouts    app.blade.php (signed-in), guest.blade.php
 resources/views/livewire   component views
 routes/web.php             all routes (Route::livewire for pages)
-tests/Feature/{Auth,Users,Services,Console}
+tests/Unit (Money, PhoneNumber), tests/Feature/{Auth,Users,Customers,Products,Services,Console,Components}
 docs/                      technical knowledge base
 ```
 
@@ -64,7 +65,9 @@ Every application table, including `users`, uses `$table->uuid('id')->primary()`
 ## 7. Database conventions
 
 - New schema changes go in **new** migrations (`php artisan make:migration --no-interaction`). The default users migration was edited once in Phase 1 before any shared deployment; don't do that again.
-- **Money = integer pesewas** (ADR-0005): `bigInteger`/`unsignedBigInteger` columns suffixed `_pesewas`. Never floats, never decimals.
+- **Money = integer pesewas** (ADR-0005): `bigInteger`/`unsignedBigInteger` columns suffixed `_pesewas`. Never floats, never decimals. Convert only with `AppSupportMoney` (`parse` at input, `format` for display).
+- Uploaded files: validate type and size in the form object, store with `$file->store(dir, disk)` inside the service, delete replaced files only after the DB save succeeds (see `ProductService`).
+- Phone numbers: store `PhoneNumber::normalise()` output (`+233…`), display with `PhoneNumber::format()`.
 - Users and financial records are never hard-deleted — deactivate / reverse instead.
 - Emails are stored lower-case.
 
@@ -118,10 +121,11 @@ Create a listed-but-missing doc (see `docs/README.md`) when the first feature it
 
 ```sh
 composer run dev                         # server + Vite + queue + logs
-php artisan test --compact               # all tests (54 passing)
+php artisan test --compact               # all tests (139 passing)
 php artisan test --compact --filter=Name # narrow run
 vendor/bin/pint --dirty --format agent   # format changed PHP files (required before finishing)
-php artisan migrate:fresh --seed         # local reset; seeds admin@example.com / cashier@example.com (password: password)
+php artisan storage:link                 # once per machine, for product photos
+php artisan migrate:fresh --seed         # local reset; seeds admin@example.com / cashier@example.com (password: password), 14 customers, 8 products
 php artisan app:create-admin-user        # create an administrator
 php artisan route:list                   # (Livewire page routes are hidden by --except-vendor)
 npm run build                            # frontend assets

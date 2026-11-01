@@ -29,8 +29,8 @@
 
                     <p class="px-3 pt-5 pb-1.5 text-[11px] font-bold tracking-wider text-teal-100/40 uppercase">Operations</p>
                     <x-nav-link icon="cart" soon>Sales</x-nav-link>
-                    <x-nav-link icon="people" soon>Customers</x-nav-link>
-                    <x-nav-link icon="box" soon>Products</x-nav-link>
+                    <x-nav-link :href="route('customers.index')" icon="people" :active="request()->routeIs('customers.*')">Customers</x-nav-link>
+                    <x-nav-link :href="route('products.index')" icon="box" :active="request()->routeIs('products.*')">Products</x-nav-link>
                     <x-nav-link icon="wallet" soon>Payments</x-nav-link>
 
                     <p class="px-3 pt-5 pb-1.5 text-[11px] font-bold tracking-wider text-teal-100/40 uppercase">Insights</p>

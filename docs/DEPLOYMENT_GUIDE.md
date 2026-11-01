@@ -40,6 +40,7 @@ npm ci
 npm run build
 php artisan migrate --force
 php artisan optimize          # caches config, routes, views, events
+php artisan storage:link           # product photos are served from public/storage
 php artisan app:create-admin-user
 ```
 

@@ -5,7 +5,9 @@
 A staff-only web application where:
 - Staff sign in with email and password (and can reset a forgotten password by email).
 - Administrators create and manage staff accounts (Administrator or Cashier) and can deactivate leavers.
-- Signed-in users see a dashboard (placeholder — business screens are not built yet).
+- Staff register and look up customers (one customer per Ghana phone number); administrators can deactivate them.
+- Everyone can browse products with photos, GH₵ prices and stock levels, and open a details page; administrators add products and set prices and stock.
+- The dashboard shows customer and product counts (and staff counts for admins). Sales and payments are not built yet.
 
 ## Intended purpose (Planned)
 
@@ -27,8 +29,8 @@ The requirements in `prompt.md` describe a sales and customer-credit management 
 
 | Role | Today | Planned |
 |---|---|---|
-| Administrator | Everything, including user management | Also products, prices, promotions, approving refunds/cancellations |
-| Cashier | Sign in, dashboard | Customers, sales, payments |
+| Administrator | Everything: users, customers (incl. deactivation), products, prices, stock, photos | Also promotions, approving refunds/cancellations |
+| Cashier | Dashboard; add/edit customers; view products, prices and stock | Sales, payments |
 
 See [AUTHENTICATION_AND_AUTHORIZATION.md](AUTHENTICATION_AND_AUTHORIZATION.md).
 
@@ -53,11 +55,11 @@ See [AUTHENTICATION_AND_AUTHORIZATION.md](AUTHENTICATION_AND_AUTHORIZATION.md).
 
 ## Current development status
 
-Phase 1 (Foundations) complete — see [PROJECT_STATUS.md](PROJECT_STATUS.md).
+Phases 1–2 (foundations, UI, customers and products) complete — see [PROJECT_STATUS.md](PROJECT_STATUS.md).
 
 ## Known limitations
 
-- No business features yet.
+- No sales, payments or receipts yet; stock is not reduced automatically.
 - No audit log, no 2FA.
 - `composer audit` reports CVE-2026-45070 in `symfony/mime` (medium), unresolved.
 

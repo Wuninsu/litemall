@@ -19,6 +19,17 @@
 | `App\Exceptions\Auth\TooManyAttemptsException` | Rate limit hit; carries `retryAfterSeconds` |
 | `App\Exceptions\Auth\InvalidPasswordResetException` | Password broker rejects a reset (bad/expired token, unknown email) |
 | `App\Exceptions\Users\UserManagementException` | `lastActiveAdmin()`, `cannotDeactivateSelf()`, `cannotChangeOwnRole()` |
+| `App\Exceptions\Customers\CustomerException` | `invalidPhone()` (not a Ghana number), `phoneTaken()` (unique index hit, e.g. a race between two saves) |
+| `App\Exceptions\Products\ProductException` | `invalidPrice()` (≤ 0), `invalidStock()` (< 0), `imageNotSaved()` (storage failure), `skuTaken()` (unique index hit); exposes `$field` (`price` / `stock` / `image` / `sku`) so screens can show the error under the right input |
+
+## Support helpers (`app/Support`)
+
+Stateless helpers used by services, forms and models. Not services: no database access, no container dependencies.
+
+| Class | Purpose | Tests |
+|---|---|---|
+| `App\Support\Money` | Cedi text ↔ integer pesewas (`parse`, `isValid`, `format`, `toInput`). See [FINANCIAL_LOGIC.md](FINANCIAL_LOGIC.md) | `tests/Unit/MoneyTest.php` |
+| `App\Support\PhoneNumber` | Ghana phone numbers: `normalise` → `+233XXXXXXXXX` or null, `format` → `024 412 3456`, `searchFragment` for list search | `tests/Unit/PhoneNumberTest.php` |
 
 ---
 
@@ -64,6 +75,39 @@ Rate limit: `MAX_REQUESTS_PER_IP = 5` per 60 s per IP (all requests count). The 
 | `activate(User $user)` | | void | — | set `is_active=true` |
 
 Authorisation (who may call these) is **not** checked here; callers authorise via `UserPolicy` first.
+
+### CustomerService
+- **File:** [app/Services/CustomerService.php](../app/Services/CustomerService.php)
+- **Responsibility:** register and maintain customers; normalise input; enforce one customer per phone number.
+- **Dependencies:** `Customer` model, `App\Support\PhoneNumber`.
+- **Used by:** `Customers\Index` Livewire component.
+- **Related tests:** `tests/Feature/Services/CustomerServiceTest.php`, `tests/Feature/Customers/CustomerManagementTest.php`
+
+| Method | Input | Output | Throws | DB operations |
+|---|---|---|---|---|
+| `create(array{name, phone, email?, address?, notes?}, User $actor)` | raw form values; phone in any accepted format | new active `Customer` with `created_by = $actor` | `invalidPhone`, `phoneTaken` | insert `customers` |
+| `update(Customer, array{…same})` | | updated `Customer` (creator unchanged) | `invalidPhone`, `phoneTaken` | update `customers` |
+| `deactivate(Customer)` / `activate(Customer)` | | void | — | update `is_active` |
+
+Normalisation: name squished (single spaces), phone → `+233…`, email trimmed + lower-cased, blank optional fields → `null`.
+
+### ProductService
+- **File:** [app/Services/ProductService.php](../app/Services/ProductService.php)
+- **Responsibility:** maintain products, current price, stock quantity and photo; normalise SKU and category; list categories.
+- **Dependencies:** `Product` model, `Storage` (`public` disk, `products/` folder).
+- **Used by:** `Products\Index` and `Products\Show` via the `ManagesProductPanel` trait.
+- **Related tests:** `tests/Feature/Services/ProductServiceTest.php`, `tests/Feature/Products/ProductManagementTest.php`, `tests/Feature/Products/ProductImageAndStockTest.php`
+
+| Method | Input | Output | Throws | DB / file operations |
+|---|---|---|---|---|
+| `create(array{name, sku?, category?, price_pesewas, stock_quantity?, description?}, User $actor, ?UploadedFile $image = null)` | price already in pesewas (converted by `ProductForm`) | new active `Product` with `created_by = $actor` | `invalidPrice`, `invalidStock`, `skuTaken`, `imageNotSaved` | store image (if any); insert `products` |
+| `update(Product, array{…same}, ?UploadedFile $image = null, bool $removeImage = false)` | new image replaces; `removeImage` clears | updated `Product` | same | store new image; update `products`; **after** a successful save delete the previous file |
+
+File safety: a newly stored image is deleted again if the database save fails (e.g. duplicate SKU), so no orphaned files are left.
+| `deactivate(Product)` / `activate(Product)` | | void | — | update `is_active` |
+| `categories()` | — | `list<string>` distinct non-null categories, A→Z | — | select distinct |
+
+Normalisation: name squished, SKU trimmed + upper-cased (blank → `null`), category squished + first letter capitalised (blank → `null`), blank description → `null`.
 
 ## Catalogue entry template
 

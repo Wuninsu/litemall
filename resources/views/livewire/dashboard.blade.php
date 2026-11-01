@@ -1,11 +1,25 @@
 <div class="grid gap-6">
     {{-- Brand banner --}}
-    <div class="relative isolate overflow-hidden rounded-3xl bg-brand px-6 py-7 text-teal-50 sm:px-8">
-
+    <div class="rounded-3xl bg-brand px-6 py-7 text-teal-50 sm:px-8">
         <p class="text-sm font-semibold text-teal-300">{{ now()->format('l, j F Y') }}</p>
         <h2 class="mt-1 text-2xl font-extrabold tracking-tight text-white sm:text-3xl">{{ $this->greeting() }}, {{ str(auth()->user()->name)->before(' ') }}</h2>
         <p class="mt-2 max-w-xl text-sm text-teal-100/75">Every sale, every cedi, every customer balance in one place.</p>
     </div>
+
+    <section aria-label="Shop" class="grid gap-4 sm:grid-cols-2">
+        @foreach ([
+            ['label' => 'Active customers', 'value' => $this->shopStats['customers'], 'icon' => 'people', 'href' => route('customers.index')],
+            ['label' => 'Products on sale', 'value' => $this->shopStats['products'], 'icon' => 'box', 'href' => route('products.index')],
+        ] as $stat)
+            <a href="{{ $stat['href'] }}" wire:navigate class="group flex items-center justify-between rounded-2xl border border-slate-200/80 bg-white p-5 transition hover:border-teal-300 hover:shadow-sm">
+                <div>
+                    <p class="text-[13px] font-semibold text-slate-500">{{ $stat['label'] }}</p>
+                    <p class="mt-1 text-2xl font-extrabold tabular-nums">{{ number_format($stat['value']) }}</p>
+                </div>
+                <span class="grid size-10 place-items-center rounded-xl bg-teal-50 text-teal-700 transition group-hover:bg-teal-700 group-hover:text-white"><x-icon :name="$stat['icon']" /></span>
+            </a>
+        @endforeach
+    </section>
 
     @if ($this->teamStats)
         <section aria-label="Team" class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -33,8 +47,6 @@
 
             <ul class="mt-5 divide-y divide-slate-100">
                 @foreach ([
-                    ['icon' => 'people', 'name' => 'Customers', 'text' => 'Register customers and see what each one owes.'],
-                    ['icon' => 'box', 'name' => 'Products', 'text' => 'Keep your product list and prices in GH₵.'],
                     ['icon' => 'cart', 'name' => 'Sales', 'text' => 'Record sales with discounts and print receipts.'],
                     ['icon' => 'wallet', 'name' => 'Payments', 'text' => 'Take instalment payments against outstanding sales.'],
                 ] as $module)

@@ -3,6 +3,8 @@
 namespace App\Livewire;
 
 use App\Enums\UserRole;
+use App\Models\Customer;
+use App\Models\Product;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Computed;
@@ -19,6 +21,20 @@ class Dashboard extends Component
             now()->hour < 17 => 'Good afternoon',
             default => 'Good evening',
         };
+    }
+
+    /**
+     * Customer and product counts, shown to everyone.
+     *
+     * @return array{customers: int, products: int}
+     */
+    #[Computed]
+    public function shopStats(): array
+    {
+        return [
+            'customers' => Customer::query()->active()->count(),
+            'products' => Product::query()->active()->count(),
+        ];
     }
 
     /**

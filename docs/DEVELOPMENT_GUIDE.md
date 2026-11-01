@@ -14,6 +14,8 @@ composer run setup
 
 Runs, in order: `composer install`, copy `.env.example` → `.env` if missing, `php artisan key:generate`, `php artisan migrate --force`, `npm install --ignore-scripts`, `npm run build`. The database is SQLite at `database/database.sqlite`.
 
+Link public storage once so product photos display: `php artisan storage:link` (already done on this machine).
+
 Then create accounts, either:
 
 ```sh

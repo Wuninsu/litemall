@@ -29,3 +29,5 @@ Every **application** table — including `users` and all future business tables
 | Table | UUID PK | Model |
 |---|---|---|
 | users | yes | `App\Models\User` (`HasUuids`) |
+| customers | yes | `App\Models\Customer` (`HasUuids`); FK `created_by` via `foreignUuid` |
+| products | yes | `App\Models\Product` (`HasUuids`); FK `created_by` via `foreignUuid` |

@@ -1,6 +1,6 @@
 # Project Status
 
-_Last updated: 2026-11-01 (Phase 1 + UI refresh)_
+_Last updated: 2026-11-01 (end of Phase 2 — Customers and products)_
 
 ## Complete
 
@@ -12,7 +12,8 @@ _Last updated: 2026-11-01 (Phase 1 + UI refresh)_
   - Admin user management (list/search, create, edit, activate/deactivate) with last-admin protection.
   - `app:create-admin-user` command; local demo seeder.
   - 44 passing feature tests at the end of the phase.
-- **UI refresh (ADR-0011):** split-screen auth pages, sidebar shell, dashboard, users list with a single create/edit modal, shared Blade UI components.
+- **UI refresh (ADR-0011):** brand auth pages, brand-teal sidebar shell, dashboard, users list with a single create/edit panel, shared Blade UI components including `x-button` with loader.
+- **Phase 2 — Customers and products:** customer register (Ghana phone normalisation, one customer per number), products with photos, GH₵ prices stored as pesewas, stock quantities and a details page; admin-only product management; dashboard counts. 139 tests passing.
 
 ## In progress
 
@@ -20,7 +21,6 @@ Nothing.
 
 ## Not yet implemented
 
-- Customers, products (Phase 2).
 - Sales, discounts, promotions, receipts.
 - Payments, allocation, outstanding balances.
 - Refunds and cancellations.
@@ -31,13 +31,14 @@ Nothing.
 
 ## Needs attention
 
-1. Remaining Proposed ADRs: ADR-0006 (oldest-first allocation, price snapshots) and ADR-0007 (offline design) — confirm before Phase 3 (sales/payments).
-2. `symfony/mime` advisory CVE-2026-45070 (medium) — `composer update symfony/mime` when a fixed release is resolvable.
-3. Audit logging is absent; it should exist before any financial feature ships.
+1. **Decisions needed before Phase 3 (sales and payments):** ADR-0006 (oldest-first payment allocation; price snapshots on sale lines) and ADR-0007 (offline design) are still Proposed. Also undecided: how discounts work (per line or per sale; fixed or %; who may give them), receipt number format, and whether part-payment (credit) sales need a minimum deposit.
+2. ADR-0012 (admins only manage products/prices) was taken as a default without an owner answer — confirm.
+3. `symfony/mime` advisory CVE-2026-45070 (medium) — `composer update symfony/mime` when a fixed release is resolvable.
+4. Audit logging is absent; it should exist before any financial feature ships.
 
 ## Recommended next task
 
-**Phase 2 — Customers and products:** migrations (UUID PKs, prices as `_pesewas` integers), models + factories, `CustomerService` / `ProductService`, Livewire `Index` screens following the users list + modal pattern (see LIVEWIRE_COMPONENTS.md), enabling the Customers/Products sidebar links, policies (who may edit prices — likely admin only), tests, and `modules/customers.md`, `modules/products.md`, plus BUSINESS_RULES/SCHEMA updates.
+**Phase 3 — Sales:** after the decisions above, build `sales` and `sale_lines` (UUID keys, `_pesewas` amounts, unit-price snapshot per line, `restrictOnDelete` FKs), a `SaleService` with transactional totals and stock reduction (row-locked; consider a `stock_movements` ledger, ADR-0014), receipt numbering, and a full-page sale entry screen (too large for a side panel, see ADR-0011). Create `SALES_MANAGEMENT.md`, `modules/sales.md`, and extend `FINANCIAL_LOGIC.md` with worked GH₵ examples. Consider adding basic audit logging in the same phase.
 
 ## Handover — Phase 1 (2026-11-01)
 
@@ -70,3 +71,20 @@ Nothing.
 | Known issues | None known |
 | Decisions | ADR-0011 |
 | Next | Phase 2 — Customers and products using the same pattern |
+
+## Handover — Phase 2: Customers and products (2026-11-01)
+
+| Item | Detail |
+|---|---|
+| Implemented | Customers and products modules (list + right-hand panel), product photos, stock quantity and value, product details page, money and phone helpers, dashboard counts, demo data |
+| Files created | Migrations `2026_11_01_194210_create_customers_table`, `2026_11_01_194211_create_products_table`; `app/Models/{Customer,Product}.php`; `app/Services/{CustomerService,ProductService}.php`; `app/Policies/{CustomerPolicy,ProductPolicy}.php`; `app/Exceptions/{Customers/CustomerException,Products/ProductException}.php`; `app/Support/{Money,PhoneNumber}.php`; `app/Livewire/{Customers,Products}/Index.php` + views; `app/Livewire/Forms/{CustomerForm,ProductForm}.php`; `resources/views/components/textarea.blade.php`; factories for both models; tests `tests/Unit/{MoneyTest,PhoneNumberTest}.php`, `tests/Feature/Services/{CustomerServiceTest,ProductServiceTest}.php`, `tests/Feature/{Customers/CustomerManagementTest,Products/ProductManagementTest}.php`; migration `2026_11_01_195455_add_image_and_stock_to_products_table`; `app/Livewire/Products/Show.php` + view; `app/Livewire/Products/Concerns/ManagesProductPanel.php`; `resources/views/livewire/products/partials/panel.blade.php`; `resources/views/components/stock-badge.blade.php`; `tests/Feature/Products/ProductImageAndStockTest.php`; docs `FINANCIAL_LOGIC.md`, `modules/customers.md`, `modules/products.md` |
+| Files modified | `routes/web.php`, `layouts/app.blade.php` (sidebar links), `components/input.blade.php` (`prefix`), `Dashboard.php` + view (`shopStats`), `DatabaseSeeder.php`; docs listed in CHANGELOG |
+| Database changes | New tables `customers`, `products`; `products.stock_quantity` and `products.image_path` (migration `2026_11_01_195455`) |
+| Services | `CustomerService`, `ProductService` |
+| Livewire components | `Customers\Index`, `Products\Index`, `Products\Show`, trait `Products\Concerns\ManagesProductPanel`, `Forms\CustomerForm`, `Forms\ProductForm` |
+| Business rules | C1–C6, P1–P8 in BUSINESS_RULES.md |
+| Tests executed | `php artisan test --compact`; `vendor/bin/pint --dirty`; `npm run build`; `php artisan migrate:fresh --seed`; `php artisan storage:link` |
+| Test results | 139 passed, 498 assertions |
+| Known bugs | None known. No visual browser review was done in this session |
+| Decisions | ADR-0012 (admin-only products/prices — default, to confirm), ADR-0013 (phone normalisation, `app/Support`), ADR-0014 (simple stock quantity, photos on public disk) |
+| Next phase | Phase 3 — Sales (decisions listed under *Needs attention* first) |

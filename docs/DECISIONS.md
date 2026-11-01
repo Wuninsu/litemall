@@ -98,3 +98,32 @@ Never silently change an Accepted decision — add a new ADR that supersedes it.
 - **Implications:** Customers and products copy the users pattern. Sales entry should be reconsidered as a full page when designed.
 
 **ADR-0011 amendment (2026-11-01):** the owner asked for the auth-page colours to become the system colour. The deep teal is now a theme token (`--color-brand`, used as `bg-brand`); the signed-in sidebar and the dashboard banner use it as a flat colour without grid or glow (`brand-texture` and the glows stay on the auth pages only), while tables, forms and panels stay on white/`bg-canvas` for legibility. Sign-in pages changed from split screen to a full brand background with a centred translucent card.
+
+## ADR-0012 — Only administrators manage products and prices
+- **Date:** 2026-11-01 · **Status:** Accepted as the default (owner was asked twice without an answer; easy to change)
+- **Problem:** Who may add products and change selling prices?
+- **Alternatives:** Admins only; admins and cashiers; cashiers may add products but only admins change prices.
+- **Chosen:** `ProductPolicy` allows `viewAny` to everyone and `create`/`update`/`changeStatus` to admins only. Cashiers see a read-only list with the note "Prices are set by an administrator."
+- **Advantages:** Prices cannot be changed at the counter; matches the intended role split (ADR-0010).
+- **Disadvantages:** Cashiers must ask an admin to add a new item.
+- **Implications:** To let cashiers manage products, change `ProductPolicy::create/update` (and the tests in `ProductManagementTest`), and record a superseding ADR.
+
+## ADR-0013 — Ghana phone numbers normalised to E.164 and unique per customer; helpers in app/Support
+- **Date:** 2026-11-01 · **Status:** Accepted
+- **Problem:** Staff type the same number many ways (`024 412 3456`, `+233244123456`), which would create duplicate customers and split balances.
+- **Alternatives:** Store as typed; store digits only; store E.164 (`+233XXXXXXXXX`). Uniqueness: none, warn only, enforce.
+- **Chosen:** `App\Support\PhoneNumber::normalise()` converts every accepted form to `+233XXXXXXXXX` (national number starting 2, 3 or 5); the value is unique in `customers.phone`. Display uses the local format. Stateless helpers like this and `App\Support\Money` live in a new `app/Support` folder.
+- **Advantages:** One customer per number; reliable search; E.164 is ready for SMS integrations.
+- **Disadvantages:** Two people sharing one phone (e.g. a couple) cannot both be registered with that number; foreign numbers are rejected.
+- **Implications:** If shared or foreign numbers become necessary, relax the unique index and the `[235]` check with a new ADR.
+
+## ADR-0014 — Product stock as a simple quantity; photos on the public disk
+- **Date:** 2026-11-01 · **Status:** Accepted
+- **Problem:** The owner asked for a product photo, an in-stock value and a product details page.
+- **Alternatives (stock):** a single `stock_quantity` column edited by admins; a `stock_movements` ledger (every receipt, sale and adjustment as a row) with the quantity derived from it.
+- **Chosen (stock):** `products.stock_quantity` (unsigned int, default 0), edited in the product panel by admins; levels In / Low (≤ 5) / Out; stock value = quantity × selling price.
+- **Alternatives (photos):** public disk with `storage:link`; private disk served through a controller; external object storage.
+- **Chosen (photos):** one image per product on the `public` disk under `products/`, validated (JPG/PNG/WebP, ≤ 2 MB, no SVG), old files deleted on replace/remove, no resizing.
+- **Advantages:** Small and immediately useful; no extra packages.
+- **Disadvantages:** No audit trail of who changed stock or why; sales will not reduce stock until Phase 3 adds that; full-size photos are served as uploaded.
+- **Implications:** When sales are built, decrement stock inside the sale transaction with a row lock, and consider introducing a `stock_movements` ledger (new ADR) so stock changes are auditable. Deployments must run `php artisan storage:link`.

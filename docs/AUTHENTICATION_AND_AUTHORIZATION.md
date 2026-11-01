@@ -44,8 +44,8 @@ Details:
 
 | Role | Value | Can |
 |---|---|---|
-| Administrator | `admin` | Everything, including user management |
-| Cashier | `cashier` | Sign in and use operational screens (dashboard only so far) |
+| Administrator | `admin` | Everything: users, customers (incl. deactivation), products and prices |
+| Cashier | `cashier` | Dashboard; add and edit customers; view products and prices |
 
 Planned split for later phases (ADR-0010): admins manage users, products, prices, promotions and approve refunds/cancellations; cashiers record customers, sales and payments.
 
@@ -53,14 +53,30 @@ The role picker in the users panel shows each role's label and one-line `UserRol
 
 ## Authorization
 
-- Policies in `app/Policies` (auto-discovered). Currently `UserPolicy`:
+- Policies in `app/Policies` (auto-discovered).
+
+**`UserPolicy`**
 
 | Ability | Rule |
 |---|---|
 | `viewAny`, `create`, `update` | user is admin |
 | `deactivate` | user is admin **and** not the target |
 
-- Enforced at three levels: route middleware `can:viewAny,App\Models\User` on `/users*`; `$this->authorize()` in each Livewire `mount()` and action; navigation hides the Users link via `@can`.
+**`CustomerPolicy`**
+
+| Ability | Rule |
+|---|---|
+| `viewAny`, `create`, `update` | any signed-in (active) user |
+| `changeStatus` (deactivate/reactivate) | user is admin |
+
+**`ProductPolicy`** (ADR-0012)
+
+| Ability | Rule |
+|---|---|
+| `viewAny` | any signed-in (active) user |
+| `create`, `update`, `changeStatus` | user is admin |
+
+- Enforced at three levels: route middleware `can:viewAny,<Model>` on `/users`, `/customers` and `/products`; `$this->authorize()` in each Livewire `mount()` and action; views hide controls the user can't use (`@can`), e.g. the Users link, product edit buttons and customer deactivation.
 - Business invariants that are not about "who" (last active admin, own role) live in `UserService`, not policies.
 
 ## Route protection map
@@ -69,5 +85,7 @@ The role picker in the users panel shows each role's label and one-line `UserRol
 |---|---|
 | `/login`, `/forgot-password`, `/reset-password/{token}` | `guest` |
 | `/`, `/dashboard`, `POST /logout` | `auth`, `active` |
-| `/users` (list; create/edit happen in a modal on this page) | `auth`, `active`, `can:viewAny,User` |
+| `/users` (list; create/edit happen in a panel on this page) | `auth`, `active`, `can:viewAny,User` |
+| `/customers` | `auth`, `active`, `can:viewAny,Customer` |
+| `/products` | `auth`, `active`, `can:viewAny,Product` |
 | `/up` | public health check |

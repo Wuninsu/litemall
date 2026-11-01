@@ -18,6 +18,8 @@
         'check' => '<path d="m5 12 5 5L20 7"/>',
         'receipt' => '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>',
         'clock' => '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+        'eye' => '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+        'arrow-left' => '<path d="M19 12H5M12 19l-7-7 7-7"/>',
     ];
 @endphp
 

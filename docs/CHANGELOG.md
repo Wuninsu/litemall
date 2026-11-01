@@ -5,6 +5,22 @@ All notable changes to this project are recorded here. Newest entries at the top
 ## [Unreleased]
 
 ### Added
+- Phase 2 — Customers and products (2026-11-01):
+  - `customers` and `products` tables (UUID keys, `created_by` → users, prices as integer pesewas).
+  - Customers screen: search by name, email or phone in any format; status filter; one panel to add/edit; admins can deactivate/reactivate. Cashiers and admins can add and edit.
+  - Products screen: search, category and status filters; price entered in cedis with a `GH₵` prefix; admins only can add, edit, change prices and deactivate; cashiers see a read-only list (ADR-0012).
+  - `CustomerService`, `ProductService`, `CustomerPolicy`, `ProductPolicy`, `CustomerException`, `ProductException`.
+  - `App\Support\Money` (cedi ↔ pesewas, no floats) and `App\Support\PhoneNumber` (Ghana numbers → `+233…`, ADR-0013).
+  - Dashboard cards for active customers and products; Customers and Products enabled in the sidebar.
+  - `<x-input prefix>` and new `<x-textarea>` components.
+  - Demo seed data: 14 customers, 8 products.
+  - 73 new tests (unit tests for money and phone helpers, service tests, screen tests).
+  - Docs: `FINANCIAL_LOGIC.md`, `modules/customers.md`, `modules/products.md`; ADR-0012, ADR-0013.
+  - Product photos (JPG/PNG/WebP up to 2 MB, stored on the `public` disk; preview, replace and remove in the panel; thumbnails in the list).
+  - Quantity in stock per product with In / Low (1–5) / Out badges, a stock filter on the list, and stock value (quantity × price) (ADR-0014).
+  - Product details page `/products/{product}` with photo, price, stock, stock value, description and record; admins edit in place with the same panel (shared `ManagesProductPanel` trait).
+  - `<x-stock-badge>` component; `eye` and `arrow-left` icons.
+  - 12 more tests (139 total).
 - UI refresh (2026-11-01, ADR-0011):
   - Sign-in, forgot-password and reset-password pages: full-screen teal brand background with the form centred in a frosted translucent card.
   - Brand colour tokens `bg-brand`, `bg-canvas` and the `brand-texture` grid utility (`resources/css/app.css`); the deep teal from the auth pages is used for the sidebar and a dashboard banner (flat colour; grid texture and glows on the auth pages only).

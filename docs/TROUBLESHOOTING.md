@@ -11,6 +11,7 @@
 | Cannot sign in, "Too many login attempts" | 5 failures in a minute for that email+IP | Wait for the countdown, or `php artisan cache:clear` locally |
 | Password reset email never arrives locally | `MAIL_MAILER=log` | Copy the link from `storage/logs/laravel.log` |
 | Locked out — no active administrator can sign in | Should be impossible via the UI (rule U7); can happen after manual DB edits | `php artisan app:create-admin-user` |
+| Product photo shows as a broken image | `public/storage` link missing (new clone or server) | `php artisan storage:link`; check `APP_URL` matches the address you browse |
 | `route:list --except-vendor` doesn't show Livewire pages | `Route::livewire()` routes are handled by a Livewire (vendor) controller | Run `php artisan route:list` without the flag |
 
 Add an entry whenever a non-obvious problem is diagnosed.

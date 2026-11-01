@@ -17,7 +17,7 @@ composer test                                               # config:clear then 
 vendor/bin/phpunit                                          # direct runner, same arguments
 ```
 
-Current result (2026-11-01): **54 tests, 201 assertions, all passing** (also verified with no `public/build` present).
+Current result (2026-11-01): **139 tests, 498 assertions, all passing** (also verified with no `public/build` present).
 
 ## Test map
 
@@ -29,6 +29,13 @@ Current result (2026-11-01): **54 tests, 201 assertions, all passing** (also ver
 | `tests/Feature/Services/UserServiceTest.php` | `UserService` rules: normalisation, UUIDs, password keep/change, session revocation, own-role, last-admin, self-deactivation, activate |
 | `tests/Feature/Users/UserManagementTest.php` | Cashier 403 (route and component), list/search/role/status filters, nav visibility, create via modal + validation, edit via the same modal, empty form after edit→create, own-role error, deactivate/reactivate, self-deactivation forbidden, locked `form.user` cannot be swapped |
 | `tests/Feature/DashboardTest.php` | Admins see team statistics with correct counts; cashiers do not |
+| `tests/Unit/MoneyTest.php` | Cedi parsing (commas, decimals, prefixes, limits), rejection of invalid input, no float errors, formatting, input round-trip |
+| `tests/Unit/PhoneNumberTest.php` | Same Ghana number in 8 formats → one E.164 value; invalid numbers; display format; search fragments |
+| `tests/Feature/Services/CustomerServiceTest.php` | Normalisation, creator recorded, invalid phone, duplicate number in another format, update keeps creator, own number on update, (de)activation |
+| `tests/Feature/Services/ProductServiceTest.php` | Normalisation, pesewas storage, blank SKUs, zero/negative price, case-insensitive duplicate SKU, price update, categories, (de)activation |
+| `tests/Feature/Customers/CustomerManagementTest.php` | Guest redirect, both roles see list, search by name/email/phone formats, status filter, add/edit via panel, validation, duplicate number, cashier cannot deactivate, admin (de)activates, locked `form.customer` |
+| `tests/Feature/Products/ProductManagementTest.php` | Cashier read-only list and 403 on actions, filters, admin adds with cedi price, price validation, duplicate SKU, edit pre-fills and saves price, (de)activation, sidebar and dashboard links |
+| `tests/Feature/Products/ProductImageAndStockTest.php` | Photo upload, rejected files (PDF, SVG, >2 MB), stock validation, photo replace/remove deletes old file, no orphaned file on failed save, stock levels and value, stock filter, details page for cashier (read-only) and admin (edit in place), list links, 404 |
 | `tests/Feature/Components/ButtonTest.php` | `x-button` rendering: plain button, loader wiring for `wire:click` (with escaped arguments), submit + `loading-text`, submit without target, loader off, link mode |
 | `tests/Feature/Console/CreateAdminUserTest.php` | Command with options, interactive prompts, invalid input |
 
@@ -42,7 +49,7 @@ Current result (2026-11-01): **54 tests, 201 assertions, all passing** (also ver
 | Security tests | alongside features | Guests redirected, wrong role 403 (both route and component), throttling, enumeration-safe messages |
 | Unit tests | `tests/Unit` | Pure calculations (e.g. future money helpers) |
 
-Data: use factories and their states — `User::factory()->admin()`, `->cashier()`, `->inactive()`, `->unverified()`. Factory password is `password`.
+Data: use factories and their states — `User::factory()->admin()`, `->cashier()`, `->inactive()`, `->unverified()` (password `password`); `Customer::factory()->inactive()`; `Product::factory()->inactive()`, `->priced(189950)` (pesewas). Unit tests in `tests/Unit` extend PHPUnit's `TestCase` directly (no Laravel boot) and use data providers.
 
 ## Financial test scenarios (to implement with the features)
 
