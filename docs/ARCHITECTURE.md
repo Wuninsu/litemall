@@ -17,7 +17,7 @@ flowchart TD
     P -. authorize .- HTTP
 ```
 
-Concrete example in the code today: `Users\Edit::deactivate()` (Livewire) → `authorize('deactivate')` (`UserPolicy`) → `UserService::deactivate()` (rules + transaction) → `User` model / `sessions` table. The same `UserService::create()` is used by both the `Users\Create` component and the `app:create-admin-user` command.
+Concrete example in the code today: `Users\Index::deactivate()` (Livewire modal action) → `authorize('deactivate')` (`UserPolicy`) → `UserService::deactivate()` (rules + transaction) → `User` model / `sessions` table. The same `UserService::create()` is used by both the `Users\Index` modal and the `app:create-admin-user` command.
 
 ## Layers and responsibilities
 

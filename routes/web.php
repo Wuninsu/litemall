@@ -22,7 +22,5 @@ Route::middleware(['auth', 'active'])->group(function () {
 
     Route::middleware('can:viewAny,'.User::class)->group(function () {
         Route::livewire('/users', Users\Index::class)->name('users.index');
-        Route::livewire('/users/create', Users\Create::class)->name('users.create');
-        Route::livewire('/users/{user}/edit', Users\Edit::class)->name('users.edit');
     });
 });

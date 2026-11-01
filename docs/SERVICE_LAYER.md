@@ -53,7 +53,7 @@ Rate limit: `MAX_REQUESTS_PER_IP = 5` per 60 s per IP (all requests count). The 
 - **File:** [app/Services/UserService.php](../app/Services/UserService.php)
 - **Responsibility:** administrator user management; guarantees at least one active administrator.
 - **Dependencies:** `User` model, `DB`.
-- **Used by:** `Users\Create`, `Users\Edit` Livewire components; `app:create-admin-user` command.
+- **Used by:** `Users\Index` Livewire component (create/edit modal); `app:create-admin-user` command.
 - **Related tests:** `tests/Feature/Services/UserServiceTest.php`, `tests/Feature/Users/UserManagementTest.php`, `tests/Feature/Console/CreateAdminUserTest.php`
 
 | Method | Input | Output | Throws | DB operations |

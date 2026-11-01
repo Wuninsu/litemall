@@ -6,6 +6,7 @@ use App\Enums\UserRole;
 use App\Models\User;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
+use Livewire\Attributes\Locked;
 use Livewire\Form;
 
 /**
@@ -14,6 +15,7 @@ use Livewire\Form;
  */
 class UserForm extends Form
 {
+    #[Locked]
     public ?User $user = null;
 
     public string $name = '';

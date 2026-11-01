@@ -1,32 +1,19 @@
 <div>
-    <h2 class="mb-4 text-lg font-semibold">Sign in</h2>
+    <h1 class="text-[28px] font-extrabold tracking-tight text-white">Welcome back</h1>
+    <p class="mt-1 mb-8 text-teal-100/80">Sign in to continue to your dashboard.</p>
 
-    <form wire:submit="login" class="space-y-4">
-        <div>
-            <label for="email" class="block text-sm font-medium">Email</label>
-            <input wire:model="email" id="email" type="email" autocomplete="username" required autofocus
-                   class="mt-1 w-full rounded border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none">
-            @error('email') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+    <form wire:submit="login" class="grid gap-5">
+        <x-input tone="dark" wire:model="email" id="email" type="email" label="Email" autocomplete="username" placeholder="you@example.com" required autofocus />
+        <x-input tone="dark" wire:model="password" id="password" type="password" label="Password" autocomplete="current-password" placeholder="Enter your password" required />
+
+        <div class="flex items-center justify-between text-sm">
+            <label class="flex items-center gap-2 text-teal-50/90">
+                <input wire:model="remember" type="checkbox" class="size-4 rounded border-white/30 bg-white/10 text-teal-400 focus:ring-teal-300/30 focus:ring-offset-0">
+                Remember me
+            </label>
+            <a href="{{ route('password.request') }}" wire:navigate class="font-semibold text-teal-300 hover:text-teal-200">Forgot password?</a>
         </div>
 
-        <div>
-            <label for="password" class="block text-sm font-medium">Password</label>
-            <input wire:model="password" id="password" type="password" autocomplete="current-password" required
-                   class="mt-1 w-full rounded border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none">
-            @error('password') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-        </div>
-
-        <label class="flex items-center gap-2 text-sm">
-            <input wire:model="remember" type="checkbox" class="rounded border-zinc-300">
-            Remember me
-        </label>
-
-        <button type="submit" class="w-full rounded bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700" wire:loading.attr="disabled">
-            Sign in
-        </button>
-
-        <p class="text-center text-sm">
-            <a href="{{ route('password.request') }}" class="text-zinc-600 underline hover:text-zinc-900" wire:navigate>Forgot your password?</a>
-        </p>
+        <x-button variant="bright" type="submit" size="lg" block target="login" loading-text="Signing in…">Sign in</x-button>
     </form>
 </div>

@@ -10,7 +10,7 @@ Every **application** table — including `users` and all future business tables
 
 - Migration: `$table->uuid('id')->primary();` and `$table->foreignUuid('x_id')` for references.
 - Model: `use HasUuids;` (`Illuminate\Database\Eloquent\Concerns\HasUuids`). Laravel generates **ordered UUIDv7** values on `creating`, so ids sort roughly by creation time and index inserts stay efficient.
-- Route model binding works on the UUID (`/users/{user}/edit`).
+- Route model binding and `findOrFail()` work on the UUID (e.g. `Users\Index::edit($userId)`).
 - Factories need no change — ids are generated automatically.
 
 ## Why

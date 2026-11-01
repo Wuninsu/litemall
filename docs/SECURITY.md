@@ -10,9 +10,9 @@ _As of 2026-11-01 (Phase 1). Update with every security-relevant change._
 | Password security | bcrypt via `hashed` cast (cost 12; 4 in tests). `Password::defaults()` in `AppServiceProvider`: production = min 10 chars with letters, mixed case and numbers; other environments = min 8. Password changes by reset or by an admin end the user's other sessions. |
 | Sessions | Database driver, 120-minute lifetime, `SESSION_ENCRYPT=false`. Regenerated on sign-in; invalidated on sign-out. |
 | CSRF | Laravel's `web` middleware validates CSRF tokens on all POSTs, including Livewire requests and `/logout`. Token regenerated on sign-out. |
-| XSS | All output uses Blade `{{ }}`. No `{!! !!}` in application views. |
+| XSS | All output uses Blade `{{ }}`. The only `{!! !!}` is in `components/icon.blade.php`, printing hard-coded SVG paths (never user data). |
 | SQL injection | Eloquent / query builder bindings only. The user search uses a bound `LIKE` parameter. |
-| Mass assignment | `User` fillable: name, email, password, role, is_active — only ever filled from validated data inside `UserService`. Livewire `#[Locked]` on `Users\Edit::$user` and `ResetPassword::$token`. |
+| Mass assignment | `User` fillable: name, email, password, role, is_active — only ever filled from validated data inside `UserService`. Livewire `#[Locked]` on `UserForm::$user` (the record being edited in the modal; covered by `test_the_user_being_edited_cannot_be_swapped_by_the_client`) and `ResetPassword::$token`. |
 | Rate limiting | Sign-in: 5 failures/min per email+IP. Reset-link requests: 5/min per IP, plus broker throttle of 1 link/min per account. |
 | Account enumeration | Sign-in uses one message for unknown email and wrong password; reset-link form always shows the same confirmation. *Residual:* response timing differs slightly when the email is unknown (no hash check), and inactive accounts get a distinct message **after** a correct password. |
 | Lockout protection | `UserService` prevents removing or demoting the last active admin, self-deactivation and self role change; uses `lockForUpdate()` so concurrent changes cannot bypass the check. |

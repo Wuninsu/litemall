@@ -1,6 +1,6 @@
 # Project Status
 
-_Last updated: 2026-11-01 (end of Phase 1 — Foundations)_
+_Last updated: 2026-11-01 (Phase 1 + UI refresh)_
 
 ## Complete
 
@@ -11,7 +11,8 @@ _Last updated: 2026-11-01 (end of Phase 1 — Foundations)_
   - Custom authentication: sign-in, sign-out, forgot/reset password, rate limiting, deactivated-user lockout.
   - Admin user management (list/search, create, edit, activate/deactivate) with last-admin protection.
   - `app:create-admin-user` command; local demo seeder.
-  - 44 passing feature tests.
+  - 44 passing feature tests at the end of the phase.
+- **UI refresh (ADR-0011):** split-screen auth pages, sidebar shell, dashboard, users list with a single create/edit modal, shared Blade UI components.
 
 ## In progress
 
@@ -36,7 +37,7 @@ Nothing.
 
 ## Recommended next task
 
-**Phase 2 — Customers and products:** migrations (UUID PKs, prices as `_pesewas` integers), models + factories, `CustomerService` / `ProductService`, Livewire index/create/edit screens, policies (who may edit prices — likely admin only), tests, and `modules/customers.md`, `modules/products.md`, plus BUSINESS_RULES/SCHEMA updates.
+**Phase 2 — Customers and products:** migrations (UUID PKs, prices as `_pesewas` integers), models + factories, `CustomerService` / `ProductService`, Livewire `Index` screens following the users list + modal pattern (see LIVEWIRE_COMPONENTS.md), enabling the Customers/Products sidebar links, policies (who may edit prices — likely admin only), tests, and `modules/customers.md`, `modules/products.md`, plus BUSINESS_RULES/SCHEMA updates.
 
 ## Handover — Phase 1 (2026-11-01)
 
@@ -55,3 +56,17 @@ Nothing.
 | Known bugs | None known |
 | Decisions | ADR-0002, 0003, 0005 accepted; 0004 accepted for services; new 0008 (class components), 0009 (custom auth), 0010 (role enum) |
 | Next phase | Phase 2 — Customers and products |
+
+## Handover — UI refresh (2026-11-01)
+
+| Item | Detail |
+|---|---|
+| Implemented | Design A + 1 from the mockup gallery; users list + single modal; dashboard content |
+| Files created | `resources/views/components/{icon,input,button,modal,nav-link}.blade.php`; `tests/Feature/DashboardTest.php` |
+| Files modified | `layouts/app.blade.php`, `layouts/guest.blade.php`, auth views, `dashboard` view + `Dashboard.php`, `Users/Index.php` + view, `Forms/UserForm.php` (`#[Locked]`), `User.php` (`initials()`), `routes/web.php`, `resources/css/app.css`, `vite.config.js` (Manrope), `tests/Feature/Users/UserManagementTest.php` |
+| Files removed | `app/Livewire/Users/{Create,Edit}.php` and their views, `users/partials/form-fields.blade.php` |
+| Database / services | No changes |
+| Tests | `php artisan test --compact`: 47 passed, 176 assertions; also passes with no `public/build`. `npm run build` succeeds. Login page checked over HTTP with `php artisan serve` (fonts and CSS load). No visual screenshot review was possible in this session — check the screens in a browser. |
+| Known issues | None known |
+| Decisions | ADR-0011 |
+| Next | Phase 2 — Customers and products using the same pattern |

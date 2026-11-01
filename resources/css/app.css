@@ -4,6 +4,24 @@
 @source '../../storage/framework/views/*.php';
 
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+    --font-sans: var(--font-manrope), ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
+
+    /* Brand surface: the deep teal used on the auth pages, sidebar and dashboard banner. */
+    --color-brand: #0b3b3a;
+    --color-brand-raised: #0f4846;
+    /* Page background in the signed-in area: off-white with a slight teal tint. */
+    --color-canvas: #f4f7f7;
+}
+
+/* Grid texture used on the auth-page background. */
+@utility brand-texture {
+    background-image:
+        linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+    background-size: 36px 36px;
+}
+
+[x-cloak] {
+    display: none !important;
 }

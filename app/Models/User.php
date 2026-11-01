@@ -35,6 +35,16 @@ class User extends Authenticatable
         ];
     }
 
+    /**
+     * Up to two initials for avatar badges, e.g. "Ama Mensah" → "AM".
+     */
+    public function initials(): string
+    {
+        return str($this->name)->squish()->explode(' ')->take(2)
+            ->map(fn (string $part): string => mb_strtoupper(mb_substr($part, 0, 1)))
+            ->implode('');
+    }
+
     public function isAdmin(): bool
     {
         return $this->role === UserRole::Admin;

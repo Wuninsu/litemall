@@ -87,3 +87,14 @@ Never silently change an Accepted decision — add a new ADR that supersedes it.
 - **Advantages:** No dependency; type-safe; trivial to test.
 - **Disadvantages:** One role per user; fine-grained per-user permissions would need a new ADR.
 - **Implications:** Adding a role (e.g. Manager) means a new enum case and policy review.
+
+## ADR-0011 — Visual design and the list + modal screen pattern
+- **Date:** 2026-11-01 · **Status:** Accepted (owner picked sign-in "A" and dashboard "1" from a mockup gallery)
+- **Problem:** The Phase 1 screens were plain; the owner wanted modern auth pages, a sidebar dashboard, and one modal for both creating and editing records, reused for customers and products.
+- **Alternatives:** Auth: split brand panel (A), centred card (B), dark immersive (C). Dashboard: light white sidebar (1), navy sidebar with coloured cards (2), dark icon rail (3). CRUD: separate create/edit pages vs. list + single modal.
+- **Chosen:** A + 1. Teal brand colour (Tailwind `teal`), `slate` neutrals, Manrope self-hosted via the Vite fonts plugin, shared Blade components (`x-icon`, `x-input`, `x-button`, `x-modal`, `x-nav-link`). Each resource gets one `Index` Livewire component with filters, table and a single create/edit modal (pattern documented in [LIVEWIRE_COMPONENTS.md](LIVEWIRE_COMPONENTS.md)). Separate `/users/create` and `/users/{user}/edit` pages were removed.
+- **Advantages:** Fast data entry without leaving the list; one pattern for every resource; consistent styling from a few components; no external font requests.
+- **Disadvantages:** Modal-based edits are not deep-linkable; very large forms (e.g. sales with many lines) will need a full page instead of a modal.
+- **Implications:** Customers and products copy the users pattern. Sales entry should be reconsidered as a full page when designed.
+
+**ADR-0011 amendment (2026-11-01):** the owner asked for the auth-page colours to become the system colour. The deep teal is now a theme token (`--color-brand`, used as `bg-brand`); the signed-in sidebar and the dashboard banner use it as a flat colour without grid or glow (`brand-texture` and the glows stay on the auth pages only), while tables, forms and panels stay on white/`bg-canvas` for legibility. Sign-in pages changed from split screen to a full brand background with a centred translucent card.

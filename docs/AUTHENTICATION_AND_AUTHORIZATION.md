@@ -49,6 +49,8 @@ Details:
 
 Planned split for later phases (ADR-0010): admins manage users, products, prices, promotions and approve refunds/cancellations; cashiers record customers, sales and payments.
 
+The role picker in the users panel shows each role's label and one-line `UserRole::description()`.
+
 ## Authorization
 
 - Policies in `app/Policies` (auto-discovered). Currently `UserPolicy`:
@@ -67,5 +69,5 @@ Planned split for later phases (ADR-0010): admins manage users, products, prices
 |---|---|
 | `/login`, `/forgot-password`, `/reset-password/{token}` | `guest` |
 | `/`, `/dashboard`, `POST /logout` | `auth`, `active` |
-| `/users`, `/users/create`, `/users/{user}/edit` | `auth`, `active`, `can:viewAny,User` |
+| `/users` (list; create/edit happen in a modal on this page) | `auth`, `active`, `can:viewAny,User` |
 | `/up` | public health check |

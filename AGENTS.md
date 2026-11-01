@@ -40,6 +40,7 @@ app/Exceptions             DomainException + Auth/, Users/ subclasses
 app/Http/Controllers       LogoutController (only non-Livewire endpoint)
 app/Http/Middleware        EnsureUserIsActive (alias `active`)
 app/Livewire               components by area (Auth/, Users/), Forms/ for form objects
+resources/views/components shared Blade UI: x-icon, x-input, x-button, x-modal, x-nav-link
 app/Models                 Eloquent models (User)
 app/Policies               UserPolicy
 app/Services               UserService, Auth/LoginService, Auth/PasswordResetService
@@ -83,7 +84,8 @@ None implemented yet. Proposed rules (oldest-first payment allocation, historica
 - Class-based components (`php artisan make:livewire Area/Name --no-interaction` — config produces class + view). Full pages via `Route::livewire()`; default layout `layouts::app`, guest pages use `#[Layout('layouts::guest')]`.
 - Call `$this->authorize()` in `mount()` **and** every mutating action — Livewire update requests bypass most route middleware.
 - Public properties are client-modifiable: mark ids/tokens `#[Locked]`; use Form objects (`app/Livewire/Forms`) for input validation.
-- No business logic or money arithmetic in components. Catalogue: [docs/LIVEWIRE_COMPONENTS.md](docs/LIVEWIRE_COMPONENTS.md).
+- Resource screens follow the **list + single create/edit modal** pattern of `Users\Index` (ADR-0011); build them from the shared Blade components, `bg-brand`/`bg-canvas` tokens and `teal` accents (see LIVEWIRE_COMPONENTS.md).
+- No business logic or money arithmetic in components. Catalogue and pattern: [docs/LIVEWIRE_COMPONENTS.md](docs/LIVEWIRE_COMPONENTS.md).
 
 ## 11. Testing requirements
 
@@ -116,7 +118,7 @@ Create a listed-but-missing doc (see `docs/README.md`) when the first feature it
 
 ```sh
 composer run dev                         # server + Vite + queue + logs
-php artisan test --compact               # all tests (44 passing at end of Phase 1)
+php artisan test --compact               # all tests (54 passing)
 php artisan test --compact --filter=Name # narrow run
 vendor/bin/pint --dirty --format agent   # format changed PHP files (required before finishing)
 php artisan migrate:fresh --seed         # local reset; seeds admin@example.com / cashier@example.com (password: password)

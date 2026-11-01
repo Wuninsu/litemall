@@ -17,7 +17,7 @@ composer test                                               # config:clear then 
 vendor/bin/phpunit                                          # direct runner, same arguments
 ```
 
-Current result (2026-11-01): **44 tests, 154 assertions, all passing.**
+Current result (2026-11-01): **54 tests, 201 assertions, all passing** (also verified with no `public/build` present).
 
 ## Test map
 
@@ -27,7 +27,9 @@ Current result (2026-11-01): **44 tests, 154 assertions, all passing.**
 | `tests/Feature/Auth/LoginTest.php` | Sign-in success, case-insensitive email, wrong password, unknown email, inactive user, throttling, sign-out, guest/auth redirects, deactivation mid-session |
 | `tests/Feature/Auth/PasswordResetTest.php` | Reset link sent / not revealed for unknown email, IP throttling, reset with valid/invalid token, confirmation mismatch, sessions revoked |
 | `tests/Feature/Services/UserServiceTest.php` | `UserService` rules: normalisation, UUIDs, password keep/change, session revocation, own-role, last-admin, self-deactivation, activate |
-| `tests/Feature/Users/UserManagementTest.php` | Cashier 403s (routes and direct component), list/search, nav visibility, create + validation, edit, own-role error, deactivate/activate, self-deactivation forbidden |
+| `tests/Feature/Users/UserManagementTest.php` | Cashier 403 (route and component), list/search/role/status filters, nav visibility, create via modal + validation, edit via the same modal, empty form after edit→create, own-role error, deactivate/reactivate, self-deactivation forbidden, locked `form.user` cannot be swapped |
+| `tests/Feature/DashboardTest.php` | Admins see team statistics with correct counts; cashiers do not |
+| `tests/Feature/Components/ButtonTest.php` | `x-button` rendering: plain button, loader wiring for `wire:click` (with escaped arguments), submit + `loading-text`, submit without target, loader off, link mode |
 | `tests/Feature/Console/CreateAdminUserTest.php` | Command with options, interactive prompts, invalid input |
 
 ## Strategy

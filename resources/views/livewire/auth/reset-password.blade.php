@@ -1,29 +1,16 @@
 <div>
-    <h2 class="mb-4 text-lg font-semibold">Choose a new password</h2>
+    <h1 class="text-[28px] font-extrabold tracking-tight text-white">Choose a new password</h1>
+    <p class="mt-1 mb-8 text-teal-100/80">After saving you will be signed out of all other devices.</p>
 
-    <form wire:submit="resetPassword" class="space-y-4">
-        <div>
-            <label for="email" class="block text-sm font-medium">Email</label>
-            <input wire:model="email" id="email" type="email" autocomplete="username" required
-                   class="mt-1 w-full rounded border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none">
-            @error('email') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-        </div>
+    <form wire:submit="resetPassword" class="grid gap-5">
+        <x-input tone="dark" wire:model="email" id="email" type="email" label="Email" autocomplete="username" required />
+        <x-input tone="dark" wire:model="password" id="password" type="password" label="New password" autocomplete="new-password" required />
+        <x-input tone="dark" wire:model="password_confirmation" id="password_confirmation" type="password" label="Confirm new password" autocomplete="new-password" required />
 
-        <div>
-            <label for="password" class="block text-sm font-medium">New password</label>
-            <input wire:model="password" id="password" type="password" autocomplete="new-password" required
-                   class="mt-1 w-full rounded border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none">
-            @error('password') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-        </div>
-
-        <div>
-            <label for="password_confirmation" class="block text-sm font-medium">Confirm new password</label>
-            <input wire:model="password_confirmation" id="password_confirmation" type="password" autocomplete="new-password" required
-                   class="mt-1 w-full rounded border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none">
-        </div>
-
-        <button type="submit" class="w-full rounded bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700" wire:loading.attr="disabled">
-            Reset password
-        </button>
+        <x-button variant="bright" type="submit" size="lg" block target="resetPassword" loading-text="Saving…">Reset password</x-button>
     </form>
+
+    <p class="mt-8 text-center text-sm">
+        <a href="{{ route('login') }}" wire:navigate class="font-semibold text-teal-300 hover:text-teal-200">Back to sign in</a>
+    </p>
 </div>

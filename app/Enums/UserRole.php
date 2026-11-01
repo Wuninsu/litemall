@@ -17,4 +17,15 @@ enum UserRole: string
             self::Cashier => 'Cashier',
         };
     }
+
+    /**
+     * One-line summary shown in the role picker.
+     */
+    public function description(): string
+    {
+        return match ($this) {
+            self::Admin => 'Full access, including staff',
+            self::Cashier => 'Day-to-day sales and payments',
+        };
+    }
 }
