@@ -20,7 +20,10 @@ Documentation describes **implemented** behaviour. Anything planned is explicitl
 | [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md) | Every table, column, index |
 | [DATABASE_RELATIONSHIPS.md](DATABASE_RELATIONSHIPS.md) | Relationships and ER diagram |
 | [SERVICE_LAYER.md](SERVICE_LAYER.md) | Service conventions and catalogue |
-| [AUTHENTICATION_AND_AUTHORIZATION.md](AUTHENTICATION_AND_AUTHORIZATION.md) | Current auth state |
+| [AUTHENTICATION_AND_AUTHORIZATION.md](AUTHENTICATION_AND_AUTHORIZATION.md) | Sign-in, password reset, roles, policies |
+| [BUSINESS_RULES.md](BUSINESS_RULES.md) | Enforced business rules and where |
+| [LIVEWIRE_COMPONENTS.md](LIVEWIRE_COMPONENTS.md) | Every component, layout and form object |
+| [UUID_STRATEGY.md](UUID_STRATEGY.md) | UUID primary key rules |
 | [SECURITY.md](SECURITY.md) | Security controls, assumptions, gaps |
 | [TESTING_GUIDE.md](TESTING_GUIDE.md) | How to run and write tests |
 | [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) | Requirements and deployment procedure |
@@ -35,16 +38,13 @@ These are required by `prompt.md` but intentionally do not exist yet, because th
 
 | Document | Create when… |
 |---|---|
-| BUSINESS_RULES.md | the first business rule is enforced in code |
-| FINANCIAL_LOGIC.md | the first money calculation is implemented |
-| LIVEWIRE_COMPONENTS.md | Livewire is installed and the first component is added |
+| FINANCIAL_LOGIC.md | the first money calculation is implemented (also add financial rules to BUSINESS_RULES.md) |
 | SALES_MANAGEMENT.md, modules/sales.md | sales are implemented |
 | PAYMENT_SYSTEM.md, modules/payments.md | payments are implemented |
 | PROMOTIONS_SYSTEM.md, modules/promotions.md | promotions are implemented |
 | REFUNDS_AND_CANCELLATIONS.md | refunds or cancellations are implemented |
 | DASHBOARD_AND_REPORTING.md, modules/dashboard.md, modules/reports.md | dashboard or reports are implemented |
 | BULK_IMPORTS.md | any import is implemented |
-| UUID_STRATEGY.md | the first UUID-keyed table is migrated (ADR-0002) |
 | OFFLINE_READINESS.md | any offline-related code (device ids, idempotency keys, sync) is added |
 | API_DOCUMENTATION.md | the first API route is added |
 | modules/customers.md, modules/products.md | customers / products are implemented |

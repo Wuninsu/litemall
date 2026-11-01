@@ -1,48 +1,62 @@
 # Architecture
 
-## Current state
+## Overview
 
-Standard Laravel 13 application structure with no custom layers yet:
-
-- `bootstrap/app.php` registers `routes/web.php`, `routes/console.php` and the `/up` health route, adds no custom middleware, and renders exceptions as JSON for `api/*` requests or requests that expect JSON.
-- `routes/web.php` has one closure route: `GET /` → `welcome` view.
-- `app/Models/User.php` is the only model.
-- `app/Providers/AppServiceProvider.php` is empty.
-
-## Target architecture (Proposed — ADR-0003, ADR-0004)
+Laravel 13 monolith with a Livewire 4 UI and a service layer that owns all business rules.
 
 ```mermaid
 flowchart TD
-    UI[Livewire components] --> S[Services<br/>app/Services]
-    HTTP[Controllers / API] --> S
-    CLI[Artisan commands / Imports] --> S
-    JOB[Queued jobs / future offline sync] --> S
-    S --> M[Eloquent models]
+    UI[Livewire components<br/>app/Livewire] --> S[Services<br/>app/Services]
+    HTTP[Controllers<br/>app/Http/Controllers] --> S
+    CLI[Artisan commands<br/>app/Console/Commands] --> S
+    JOB[Future: jobs, imports, offline sync] -.-> S
+    S --> M[Eloquent models<br/>app/Models]
     S --> TX[(DB transactions + row locks)]
     M --> DB[(Database)]
+    P[Policies<br/>app/Policies] -. authorize .- UI
+    P -. authorize .- HTTP
 ```
 
-### Layers and responsibilities
+Concrete example in the code today: `Users\Edit::deactivate()` (Livewire) → `authorize('deactivate')` (`UserPolicy`) → `UserService::deactivate()` (rules + transaction) → `User` model / `sessions` table. The same `UserService::create()` is used by both the `Users\Create` component and the `app:create-admin-user` command.
+
+## Layers and responsibilities
 
 | Layer | Responsibility | Must not |
 |---|---|---|
-| Entry points (Livewire, controllers, commands, jobs) | Input validation (shape/format), authorisation, calling one service method, rendering | Contain business rules or money arithmetic |
-| Services | Business rules, financial calculations, transactions, locking, domain exceptions | Know about HTTP requests or Livewire state |
-| Models | Persistence, relationships, casts, simple scopes | Perform multi-model business workflows |
+| Routes + middleware (`routes/web.php`, `bootstrap/app.php`) | Map URLs; coarse protection (`guest`, `auth`, `active`, `can:`) | Contain logic |
+| Entry points (Livewire, controllers, commands) | Input shape validation (Form objects / `validate()`), `authorize()`, call a service, map `DomainException` to UI errors, HTTP concerns (session regenerate/invalidate, redirects) | Contain business rules or money arithmetic |
+| Policies | *Who* may do something (role checks) | Business invariants (those go in services) |
+| Services | Business rules, normalisation (e.g. lower-case email), transactions, locking, rate limiting, domain exceptions | Know about Livewire state or HTTP responses |
+| Models | Persistence, casts, simple scopes (`User::scopeActive`) | Multi-model workflows |
 
-### Sharing logic between entry points
+## Livewire ↔ service communication
 
-Because every entry point calls the same service method, a sale created from the UI, a bulk import, or a future offline sync goes through identical validation and calculation. This is the main reason for the service layer (ADR-0004).
+Services are method-injected into Livewire actions:
 
-### Livewire ↔ service communication
+```php
+public function save(UserService $userService): void
+{
+    $this->authorize('update', $this->user);
+    try {
+        $userService->update($this->user, $this->form->payload(), auth()->user());
+    } catch (UserManagementException $exception) {
+        $this->addError('form.role', $exception->getMessage());
+        return;
+    }
+    ...
+}
+```
 
-Livewire is not installed. When it is: a component action validates input, calls `$this->authorize()`, invokes a constructor-/method-injected service, catches domain exceptions and maps them to validation errors or flash messages.
+Livewire update requests (`POST /livewire-*/update`) do not re-run all route middleware, so every action authorises again.
 
-### Concurrency
+## Concurrency
 
-Financial operations will use `DB::transaction()` with `lockForUpdate()` on the rows whose balances are read and changed, so two simultaneous payments cannot both see the same outstanding balance. Documented in detail in `FINANCIAL_LOGIC.md` once implemented.
+Read-then-write rules run inside `DB::transaction()` with `lockForUpdate()`. Example: `UserService::ensureAnotherActiveAdminExists()` locks the other active admin rows, so two admins demoting each other simultaneously cannot leave zero admins. Financial operations will follow the same pattern.
+
+## Error model
+
+Business-rule violations throw subclasses of `App\Exceptions\DomainException` with a user-presentable message. Anything else is treated as a bug and reaches Laravel's exception handler (JSON for `api/*` or JSON-expecting requests).
 
 ## Design patterns in use
 
-- Laravel conventions only (service container, Eloquent active record, attribute-based model config such as `#[Fillable]` / `#[Hidden]` on `User`).
-- Service layer: Proposed.
+- Service layer (ADR-0004), domain exceptions, Livewire Form objects (`App\Livewire\Forms\UserForm`), policies, backed enums for fixed value sets (`UserRole`), attribute-based model config (`#[Fillable]`, `#[Hidden]`), UUID keys via `HasUuids` (ADR-0002).

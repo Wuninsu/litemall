@@ -1,13 +1,17 @@
 # Project Status
 
-_Last updated: 2026-11-01_
+_Last updated: 2026-11-01 (end of Phase 1 — Foundations)_
 
 ## Complete
 
-- Laravel 13 skeleton (initial commit `ee40a0b`).
-- Default migrations run against local SQLite (`users`, `password_reset_tokens`, `sessions`, `cache`, `cache_locks`, `jobs`, `job_batches`, `failed_jobs`).
-- Laravel Boost installed (`laravel/boost` dev dependency, `boost.json`, guidelines written to `CLAUDE.md`).
-- Documentation framework: `AGENTS.md` and `docs/`.
+- **Phase 0:** documentation framework (`AGENTS.md`, `docs/`), Laravel Boost.
+- **Phase 1 — Foundations:**
+  - Livewire 4.4 (class-based), Tailwind 4 layouts, Vite build working.
+  - UUID primary key on `users`; roles `admin` / `cashier`; `is_active`; `last_login_at`.
+  - Custom authentication: sign-in, sign-out, forgot/reset password, rate limiting, deactivated-user lockout.
+  - Admin user management (list/search, create, edit, activate/deactivate) with last-admin protection.
+  - `app:create-admin-user` command; local demo seeder.
+  - 44 passing feature tests.
 
 ## In progress
 
@@ -15,42 +19,39 @@ Nothing.
 
 ## Not yet implemented
 
-- Livewire installation and UI layout.
-- Authentication (login/logout, password reset) and roles/permissions.
-- Customers, products, sales, discounts, promotions.
-- Payments, allocation, outstanding balances, receipts.
+- Customers, products (Phase 2).
+- Sales, discounts, promotions, receipts.
+- Payments, allocation, outstanding balances.
 - Refunds and cancellations.
-- Dashboard, reports, bulk imports.
-- Audit logging.
-- Offline readiness (UUIDs, device ids, idempotency, sync).
+- Dashboard content, reports, bulk imports.
+- Audit logging of administrative and financial actions.
+- Offline readiness beyond UUIDs (device ids, idempotency, sync).
+- Production mailer configuration (reset emails currently go to the log).
 
 ## Needs attention
 
-1. **Decide the Proposed ADRs** in [DECISIONS.md](DECISIONS.md) (UUIDs, Livewire 4, money storage, etc.) — they shape the first migrations.
-2. `symfony/mime` security advisory CVE-2026-45070 (medium) — run `composer update symfony/mime` when a fixed release is available to this constraint set.
-3. `APP_NAME` is still `Laravel`.
-4. Frontend dependencies are not installed (`npm install`), so `npm run build` has never been run here.
+1. Remaining Proposed ADRs: ADR-0006 (oldest-first allocation, price snapshots) and ADR-0007 (offline design) — confirm before Phase 3 (sales/payments).
+2. `symfony/mime` advisory CVE-2026-45070 (medium) — `composer update symfony/mime` when a fixed release is resolvable.
+3. Audit logging is absent; it should exist before any financial feature ships.
 
 ## Recommended next task
 
-Phase 1 — Foundations:
-1. Accept/reject ADR-0002 (UUIDs), ADR-0003 (Livewire 4), ADR-0005 (money storage).
-2. Install Livewire and an authentication mechanism; define roles.
-3. Implement customers and products (migrations, models, factories, services, components, tests, docs).
+**Phase 2 — Customers and products:** migrations (UUID PKs, prices as `_pesewas` integers), models + factories, `CustomerService` / `ProductService`, Livewire index/create/edit screens, policies (who may edit prices — likely admin only), tests, and `modules/customers.md`, `modules/products.md`, plus BUSINESS_RULES/SCHEMA updates.
 
-## Handover — Phase 0 (2026-11-01)
+## Handover — Phase 1 (2026-11-01)
 
 | Item | Detail |
 |---|---|
-| Implemented | Documentation framework; Laravel Boost guidelines |
-| Files created | `AGENTS.md` (rewritten from Boost bootstrap stub), `docs/*.md`, `boost.json` |
-| Files modified | `composer.json`, `composer.lock` (added `laravel/boost`), `CLAUDE.md` (Boost guidelines + pointer to AGENTS.md) |
-| Database changes | None |
-| Services / Livewire components | None |
-| Business rules | None implemented; intended rules recorded as Proposed ADRs |
-| Tests executed | `php artisan test` |
-| Test results | 2 passed (framework example tests) |
-| Known bugs | None |
-| Outstanding | See *Needs attention* |
-| Decisions | ADR-0001 accepted; ADR-0002…0007 proposed |
-| Next phase | Phase 1 — Foundations (above) |
+| Implemented | Livewire setup, custom auth, roles, user management, admin bootstrap command |
+| Files created | `app/Enums/UserRole.php`; `app/Exceptions/DomainException.php`, `Auth/*`, `Users/UserManagementException.php`; `app/Services/UserService.php`, `Services/Auth/LoginService.php`, `PasswordResetService.php`; `app/Livewire/{Dashboard, Auth/*, Users/*, Forms/UserForm}.php` + views; `resources/views/layouts/{app,guest}.blade.php`; `app/Policies/UserPolicy.php`; `app/Http/Middleware/EnsureUserIsActive.php`; `app/Http/Controllers/Auth/LogoutController.php`; `app/Console/Commands/CreateAdminUser.php`; `config/livewire.php`; tests under `tests/Feature/{Auth,Users,Services,Console}`; `package-lock.json` |
+| Files modified | users migration; `User` model + factory; `DatabaseSeeder`; `routes/web.php`; `bootstrap/app.php`; `AppServiceProvider`; `tests/TestCase.php` (`withoutVite`); `tests/Feature/ExampleTest.php`; `composer.json/lock` (livewire) |
+| Files removed | `resources/views/welcome.blade.php` |
+| Database changes | `users`: UUID `id`, `role`, `is_active`, `last_login_at`; `sessions.user_id` UUID |
+| Services | `LoginService`, `PasswordResetService`, `UserService` |
+| Livewire components | `Auth\Login`, `Auth\ForgotPassword`, `Auth\ResetPassword`, `Dashboard`, `Users\Index`, `Users\Create`, `Users\Edit`, `Forms\UserForm` |
+| Business rules | U1–U10 in [BUSINESS_RULES.md](BUSINESS_RULES.md) |
+| Tests executed | `php artisan test --compact`; `vendor/bin/pint --dirty`; manual check with `php artisan serve` (login page renders with built assets, `/dashboard` redirects guests) |
+| Test results | 44 passed, 154 assertions |
+| Known bugs | None known |
+| Decisions | ADR-0002, 0003, 0005 accepted; 0004 accepted for services; new 0008 (class components), 0009 (custom auth), 0010 (role enum) |
+| Next phase | Phase 2 — Customers and products |

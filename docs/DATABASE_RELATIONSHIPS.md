@@ -1,6 +1,6 @@
 # Database Relationships
 
-_As of 2026-11-01._
+_As of 2026-11-01 (Phase 1)._
 
 ## Eloquent relationships
 
@@ -12,18 +12,20 @@ There are **no foreign key constraints** in the schema.
 
 | From | To | Kind | Enforcement |
 |---|---|---|---|
-| `sessions.user_id` | `users.id` | many sessions → one user (nullable) | Index only, no FK; deleting a user leaves orphaned session rows (harmless; they expire) |
+| `sessions.user_id` (uuid) | `users.id` (uuid) | many sessions → one user (nullable) | Index only, no FK. Users are never hard-deleted (they are deactivated), and `UserService::deactivate()` deletes the user's session rows explicitly |
 
 ```mermaid
 erDiagram
     users ||--o{ sessions : "user_id (logical, no FK)"
     users {
-        bigint id PK
+        uuid id PK
         string email UK
+        string role "admin | cashier"
+        boolean is_active
     }
     sessions {
         string id PK
-        bigint user_id "nullable, indexed"
+        uuid user_id "nullable, indexed"
     }
 ```
 
@@ -31,4 +33,5 @@ erDiagram
 
 ## Cascading and deletion rules
 
-None defined. When business tables are added, record for each FK whether it uses `restrictOnDelete`, `cascadeOnDelete` or `nullOnDelete`, and why. Financial tables are intended to use `restrictOnDelete` (ADR-0004).
+- Users are never deleted through the application; deactivation (`is_active = false`) is used instead so future sales/payments can keep referring to the staff member who recorded them.
+- When business tables are added, record for each FK whether it uses `restrictOnDelete`, `cascadeOnDelete` or `nullOnDelete`, and why. Financial tables are intended to use `restrictOnDelete` (ADR-0004).

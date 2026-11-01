@@ -1,8 +1,11 @@
 # Project Overview
 
-## What the application does
+## What the application does (implemented)
 
-**Currently: nothing beyond the Laravel skeleton.** The repository contains a fresh Laravel 13 install serving a welcome page at `/` and a health check at `/up`.
+A staff-only web application where:
+- Staff sign in with email and password (and can reset a forgotten password by email).
+- Administrators create and manage staff accounts (Administrator or Cashier) and can deactivate leavers.
+- Signed-in users see a dashboard (placeholder — business screens are not built yet).
 
 ## Intended purpose (Planned)
 
@@ -20,43 +23,44 @@ The requirements in `prompt.md` describe a sales and customer-credit management 
 
 **Business problem (inferred from the requirements, to be confirmed with the owner):** accurately tracking what each customer bought, what they have paid, and what they still owe, with an auditable financial history.
 
-None of the above is implemented. See [PROJECT_STATUS.md](PROJECT_STATUS.md).
-
 ## User roles
 
-None are implemented. There is a `users` table and `User` model, but no login, registration or role system. Roles will be documented in [AUTHENTICATION_AND_AUTHORIZATION.md](AUTHENTICATION_AND_AUTHORIZATION.md) when defined.
+| Role | Today | Planned |
+|---|---|---|
+| Administrator | Everything, including user management | Also products, prices, promotions, approving refunds/cancellations |
+| Cashier | Sign in, dashboard | Customers, sales, payments |
+
+See [AUTHENTICATION_AND_AUTHORIZATION.md](AUTHENTICATION_AND_AUTHORIZATION.md).
 
 ## Technology stack
 
 | Component | Installed version | Notes |
 |---|---|---|
 | PHP | 8.4.18 (local, Laragon) | `composer.json` requires `^8.3` |
-| Laravel | 13.34.0 | |
+| Laravel | 13.34 | |
+| Livewire | 4.4 | class-based components (ADR-0008) |
+| Tailwind CSS / Vite | 4 / 8 | `npm run build` → `public/build` |
 | PHPUnit | 12.5 | |
 | Laravel Pint | 1.32 | code style |
 | Laravel Boost | 2.10 (dev) | AI agent guidelines in `CLAUDE.md` |
-| Laravel Pail, Tinker | dev / runtime tools | |
-| Vite / Tailwind CSS | 8 / 4 | declared in `package.json`; `node_modules` not installed yet |
-| Database | SQLite | local file `database/database.sqlite` |
-
-**Planned, not installed:** Livewire 4 (implied by `prompt.md`; needs ADR-0003 acceptance).
+| Database | SQLite | local file `database/database.sqlite`; production DB not yet chosen |
 
 ## System boundaries
 
-- Single Laravel monolith; server-rendered web UI.
-- No external integrations (payment gateways, SMS, email providers) are configured. Mail uses the `log` mailer.
-- No public API (`routes/api.php` does not exist).
+- Single Laravel monolith; server-rendered Livewire UI.
+- Outbound email only for password-reset links (`MAIL_MAILER=log` locally).
+- No public API (`routes/api.php` does not exist); no payment gateways or SMS.
 
 ## Current development status
 
-Phase 0 — skeleton plus documentation framework. 2 example tests pass.
+Phase 1 (Foundations) complete — see [PROJECT_STATUS.md](PROJECT_STATUS.md).
 
 ## Known limitations
 
-- No authentication, authorisation, or business features.
-- Default `APP_NAME=Laravel` has not been changed.
-- `composer audit` reports one medium advisory in `symfony/mime` (CVE-2026-45070, email header injection); fix with `composer update symfony/mime` once a patched version is resolvable.
+- No business features yet.
+- No audit log, no 2FA.
+- `composer audit` reports CVE-2026-45070 in `symfony/mime` (medium), unresolved.
 
 ## Planned future improvements
 
-See the *Not yet implemented* list in [PROJECT_STATUS.md](PROJECT_STATUS.md).
+See *Not yet implemented* in [PROJECT_STATUS.md](PROJECT_STATUS.md).

@@ -1,29 +1,36 @@
 # Security
 
-_Describes the current skeleton (2026-11-01). Update with every security-relevant change._
+_As of 2026-11-01 (Phase 1). Update with every security-relevant change._
 
 | Area | Current state |
 |---|---|
-| Authentication | Not implemented. See [AUTHENTICATION_AND_AUTHORIZATION.md](AUTHENTICATION_AND_AUTHORIZATION.md). |
-| Authorisation / roles | Not implemented. All routes are public. |
-| Password security | `hashed` cast on `User.password` (bcrypt, cost 12 from `BCRYPT_ROUNDS`). `password` and `remember_token` are hidden from serialisation via `#[Hidden]`. |
-| Sessions | Database driver, 120-minute lifetime, `SESSION_ENCRYPT=false` (from `.env.example`). |
-| CSRF | Laravel's default `web` middleware group includes CSRF token validation; no exclusions configured in `bootstrap/app.php`. |
-| XSS | Blade `{{ }}` escapes output. No user-generated content is rendered yet. Rule: never render user data with `{!! !!}`. |
-| SQL injection | No custom queries exist. Rule: use Eloquent / query builder bindings; never interpolate input into `DB::raw` / `whereRaw`. |
-| Rate limiting | None configured. |
-| File uploads | None exist. |
-| Financial operation protection | No financial operations exist. Planned: authorisation + transactions + row locks + idempotency keys. |
-| Audit logging | Not implemented. Only the default `stack`/`single` log channel. |
-| Sensitive data | Secrets live in `.env` (git-ignored). `APP_DEBUG=true` locally — **must be false in production**. |
-| Error responses | JSON for `api/*` or JSON-expecting requests (`bootstrap/app.php`). |
-| Dependencies | `composer audit` (2026-11-01): 1 medium advisory, `symfony/mime` CVE-2026-45070. Unresolved. |
+| Authentication | Session-based sign-in, sign-out and password reset. See [AUTHENTICATION_AND_AUTHORIZATION.md](AUTHENTICATION_AND_AUTHORIZATION.md). No public registration. |
+| Authorisation / roles | `admin` / `cashier` roles; `UserPolicy`; checks in route middleware **and** in every Livewire mount/action. |
+| Account deactivation | `is_active` flag blocks sign-in; `active` middleware ends live sessions; session rows deleted and remember token rotated on deactivation. |
+| Password security | bcrypt via `hashed` cast (cost 12; 4 in tests). `Password::defaults()` in `AppServiceProvider`: production = min 10 chars with letters, mixed case and numbers; other environments = min 8. Password changes by reset or by an admin end the user's other sessions. |
+| Sessions | Database driver, 120-minute lifetime, `SESSION_ENCRYPT=false`. Regenerated on sign-in; invalidated on sign-out. |
+| CSRF | Laravel's `web` middleware validates CSRF tokens on all POSTs, including Livewire requests and `/logout`. Token regenerated on sign-out. |
+| XSS | All output uses Blade `{{ }}`. No `{!! !!}` in application views. |
+| SQL injection | Eloquent / query builder bindings only. The user search uses a bound `LIKE` parameter. |
+| Mass assignment | `User` fillable: name, email, password, role, is_active — only ever filled from validated data inside `UserService`. Livewire `#[Locked]` on `Users\Edit::$user` and `ResetPassword::$token`. |
+| Rate limiting | Sign-in: 5 failures/min per email+IP. Reset-link requests: 5/min per IP, plus broker throttle of 1 link/min per account. |
+| Account enumeration | Sign-in uses one message for unknown email and wrong password; reset-link form always shows the same confirmation. *Residual:* response timing differs slightly when the email is unknown (no hash check), and inactive accounts get a distinct message **after** a correct password. |
+| Lockout protection | `UserService` prevents removing or demoting the last active admin, self-deactivation and self role change; uses `lockForUpdate()` so concurrent changes cannot bypass the check. |
+| File uploads | None. |
+| Financial operation protection | No financial operations yet. Planned: authorisation + transactions + row locks + idempotency keys. |
+| Audit logging | **Not implemented.** Only `last_login_at` is recorded. |
+| Sensitive data | Secrets in `.env` (git-ignored). `APP_DEBUG` must be `false` in production. `DatabaseSeeder` creates `password`-protected demo accounts and refuses to run in production. |
+| Dependencies | `composer audit` (2026-11-01): 1 medium advisory, `symfony/mime` CVE-2026-45070. Unresolved. `npm audit`: 0 vulnerabilities. |
 
 ## Assumptions
 
 - Production runs over HTTPS behind a correctly configured web server pointing at `public/`.
 - `.env` is never committed and `APP_KEY` is unique per environment.
+- A real mailer is configured in production; with `MAIL_MAILER=log`, reset links only appear in `storage/logs`.
 
 ## Known limitations
 
-- No auth, no rate limiting, no audit trail — the application must not be exposed publicly or hold real data in its current state.
+- No audit trail of administrative actions (user created/edited/deactivated).
+- No two-factor authentication.
+- No email verification (accounts are created by admins).
+- Rate-limit state lives in the cache (`CACHE_STORE=database`); clearing the cache resets counters.
