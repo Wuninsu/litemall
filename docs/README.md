@@ -30,6 +30,7 @@ Documentation describes **implemented** behaviour. Anything planned is explicitl
 | [SALES_MANAGEMENT.md](SALES_MANAGEMENT.md) | Sales flow, rules, screens |
 | [PAYMENT_SYSTEM.md](PAYMENT_SYSTEM.md) | Payments, oldest-first allocation, concurrency |
 | [OFFLINE_READINESS.md](OFFLINE_READINESS.md) | What is offline-ready now vs planned |
+| [REFUNDS_AND_CANCELLATIONS.md](REFUNDS_AND_CANCELLATIONS.md) | Returns, cancellations and refunds |
 | [modules/sales.md](modules/sales.md) | Sales module |
 | [modules/payments.md](modules/payments.md) | Payments module |
 | [SECURITY.md](SECURITY.md) | Security controls, assumptions, gaps |
@@ -47,7 +48,6 @@ These are required by `prompt.md` but intentionally do not exist yet, because th
 | Document | Create when… |
 |---|---|
 | PROMOTIONS_SYSTEM.md, modules/promotions.md | promotions are implemented |
-| REFUNDS_AND_CANCELLATIONS.md | refunds or cancellations are implemented |
 | DASHBOARD_AND_REPORTING.md, modules/dashboard.md, modules/reports.md | dashboard or reports are implemented |
 | BULK_IMPORTS.md | any import is implemented |
 | API_DOCUMENTATION.md | the first API route is added |

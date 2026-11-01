@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Enums\PaymentMethod;
-use App\Enums\SaleStatus;
 use App\Exceptions\Payments\PaymentException;
 use App\Models\Customer;
 use App\Models\Payment;
@@ -25,7 +24,7 @@ class PaymentService
     {
         return (int) Sale::query()
             ->where('customer_id', $customer->id)
-            ->sum(DB::raw('total_pesewas - paid_pesewas'));
+            ->sum(DB::raw(Sale::OWED_SQL));
     }
 
     /**
@@ -92,12 +91,9 @@ class PaymentService
             foreach ($this->allocate($sales, $amount) as ['sale' => $sale, 'amount' => $applied]) {
                 $payment->allocations()->create(['sale_id' => $sale->id, 'amount_pesewas' => $applied]);
 
-                $paid = $sale->paid_pesewas + $applied;
-
-                $sale->forceFill([
-                    'paid_pesewas' => $paid,
-                    'status' => SaleStatus::for($sale->total_pesewas, $paid),
-                ])->save();
+                $sale->paid_pesewas += $applied;
+                $sale->recalculateStatus();
+                $sale->save();
             }
 
             return $payment->load('allocations.sale');

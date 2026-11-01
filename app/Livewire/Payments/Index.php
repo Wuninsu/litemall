@@ -174,7 +174,7 @@ class Index extends Component
 
         return Customer::query()
             ->withBalance()
-            ->whereHas('sales', fn ($query) => $query->whereColumn('paid_pesewas', '<', 'total_pesewas'))
+            ->whereHas('sales', fn ($query) => $query->whereRaw(Sale::OWED_SQL.' > 0'))
             ->when($term !== '', fn ($query) => $query->where(function ($query) use ($term, $phoneFragment): void {
                 $query->where('name', 'like', "%{$term}%");
 

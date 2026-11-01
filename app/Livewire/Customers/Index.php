@@ -5,6 +5,7 @@ namespace App\Livewire\Customers;
 use App\Exceptions\Customers\CustomerException;
 use App\Livewire\Forms\CustomerForm;
 use App\Models\Customer;
+use App\Models\Sale;
 use App\Services\CustomerService;
 use App\Support\PhoneNumber;
 use Illuminate\Contracts\View\View;
@@ -138,7 +139,7 @@ class Index extends Component
             })
             ->when($this->status === 'active', fn ($query) => $query->where('is_active', true))
             ->when($this->status === 'inactive', fn ($query) => $query->where('is_active', false))
-            ->when($this->status === 'owing', fn ($query) => $query->whereHas('sales', fn ($sales) => $sales->whereColumn('paid_pesewas', '<', 'total_pesewas')))
+            ->when($this->status === 'owing', fn ($query) => $query->whereHas('sales', fn ($sales) => $sales->whereRaw(Sale::OWED_SQL.' > 0')))
             ->withBalance()
             ->orderBy('name')
             ->paginate(15);

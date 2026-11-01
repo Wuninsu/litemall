@@ -92,7 +92,7 @@
     {{-- Receive payment panel --}}
     <x-modal wire:model="showModal" position="right" max-width="max-w-xl" title="Receive payment" subtitle="Applied to the customer's oldest unpaid sales first.">
         <form wire:submit="save" class="flex min-h-0 flex-1 flex-col">
-            <div class="grid flex-1 content-start gap-8 overflow-y-auto px-6 py-6">
+            <div class="panel-scroll grid min-h-0 flex-1 content-start gap-8 overflow-y-auto px-6 py-6">
                 <section class="grid gap-3">
                     <h3 class="text-[11px] font-bold tracking-wider text-slate-400 uppercase">Customer</h3>
 

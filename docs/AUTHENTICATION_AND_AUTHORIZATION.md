@@ -44,8 +44,8 @@ Details:
 
 | Role | Value | Can |
 |---|---|---|
-| Administrator | `admin` | Everything: users, customers (incl. deactivation), products, prices, stock; sales with any discount; payments |
-| Cashier | `cashier` | Dashboard; add and edit customers; view products, prices and stock; record sales (discount up to 10%); receive payments |
+| Administrator | `admin` | Everything: users, customers (incl. deactivation), products, prices, stock; sales with any discount; payments; returns, cancellations and refunds |
+| Cashier | `cashier` | Dashboard; add and edit customers; view products, prices and stock; record sales (discount up to 10%); receive payments; cannot return items or cancel sales |
 
 Planned split for later phases (ADR-0010): admins manage users, products, prices, promotions and approve refunds/cancellations; cashiers record customers, sales and payments.
 
@@ -81,6 +81,7 @@ The role picker in the users panel shows each role's label and one-line `UserRol
 | Ability | Rule |
 |---|---|
 | `viewAny`, `view`, `create` | any signed-in (active) user |
+| `refund` (return items, cancel, refund) | user is admin (ADR-0020) |
 
 Discounts above the cashier limit are refused by `SaleService::discountFor()` for non-admins (rule S7) — a business rule, not a policy.
 

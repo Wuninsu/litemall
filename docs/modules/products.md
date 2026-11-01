@@ -50,7 +50,7 @@ See P1–P8 in [BUSINESS_RULES.md](../BUSINESS_RULES.md). In short: name and a p
 - List: thumbnail + name (+ SKU) linking to the details page, category, price (`GH₵ 1,899.50`), stock badge, status, view/edit buttons; 15 per page.
 - Filters: search (name or SKU), category (distinct categories in use), stock (Any / Low / Out), status (default Active).
 - Details page: photo, category/status, name, SKU, selling price, quantity with badge, stock value (quantity × price), description, who added it and when; admins can edit from here with the same panel.
-- Panel sections: Photo (preview, upload/change, remove) · Product (name, SKU, category with suggestions) · Price and stock (`GH₵` price, quantity; on edit, a note that past sales keep their price) · Description · Status.
+- Panel (no section titles): full-width photo area that is the file picker (click or drop; Change / Remove on the image), then name, SKU, category, prices and stock (on edit, a note that past sales keep their price), description, status.
 
 ## Not yet implemented
 

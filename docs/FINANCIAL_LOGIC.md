@@ -36,9 +36,11 @@ line_total  = unit_price_pesewas × quantity
 subtotal    = Σ line_total
 discount    = amount in pesewas, or percentOf(subtotal, basis points)
 total       = subtotal − discount                     (0 ≤ discount ≤ subtotal)
-paid        = Σ payment allocations to this sale
-balance     = total − paid                            (never negative)
-status      = Paid if paid ≥ total · Part-paid if 0 < paid < total · Unpaid if paid = 0
+returned    = Σ value of items returned (ADR-0020)
+net total   = total − returned
+paid        = Σ payment allocations to this sale − Σ refunds on its returns
+balance     = net total − paid                        (never negative; SQL: Sale::OWED_SQL)
+status      = Cancelled if returned ≥ total · Paid if paid ≥ net · Part-paid if 0 < paid < net · Unpaid if paid = 0
 ```
 
 ### Worked example — credit sale with a percentage discount
@@ -123,6 +125,10 @@ Remaining balance GH₵ 1,700.00. Paying GH₵ 1,700.01 afterwards is refused ("
 
 Note: SQLite (used locally and in tests) serialises writers instead of honouring `lockForUpdate`, which gives the same guarantee; on MySQL/PostgreSQL the row locks apply.
 
+## Returns and refunds
+
+See [REFUNDS_AND_CANCELLATIONS.md](REFUNDS_AND_CANCELLATIONS.md): value = unit price × qty × total ÷ subtotal (half-up), cancellation credits the exact remainder, the credit first reduces the debt and the rest is refunded with a method. Worked GH₵ examples are there.
+
 ## Not yet implemented
 
-Refunds · reversals · cancelled sales · promotions/promotional prices · customer credit balances (overpayment) · cost price and margins · tax.
+Promotions/promotional prices · customer credit balances (overpayment, store credit) · reversing a single payment · cost price and margins · tax.

@@ -1,6 +1,6 @@
 # Project Status
 
-_Last updated: 2026-11-01 (end of Phase 3 — Sales and payments)_
+_Last updated: 2026-11-01 (end of Phase 4 — Returns and cancellations)_
 
 ## Complete
 
@@ -15,6 +15,8 @@ _Last updated: 2026-11-01 (end of Phase 3 — Sales and payments)_
 - **UI refresh (ADR-0011):** brand auth pages, brand-teal sidebar shell, dashboard, users list with a single create/edit panel, shared Blade UI components including `x-button` with loader.
 - **Phase 2 — Customers and products:** customer register (Ghana phone normalisation, one customer per number), products with photos, GH₵ prices stored as pesewas, stock quantities and a details page; admin-only product management; dashboard counts. 139 tests passing.
 - **Phase 3 — Sales and payments:** sale entry with discounts (cashier limit), credit and counter payments; receipts `R-000001`; later payments allocated oldest-first; customer balances; dashboard money figures; idempotency keys. 178 tests passing.
+- **POS and wholesale (ADR-0018, ADR-0019):** full-screen point of sale with product grid, customer dialog, Take payment dialog with change, animated receipt printer; wholesale prices, wholesale customers and a Retail/Wholesale switch. 198 tests passing.
+- **Phase 4 — Returns and cancellations (ADR-0020):** admin-only item returns and cancellations from the receipt page with reason, discount-aware values, debt-first refunds with method, per-item restock, `RT-` numbers; all balances net of returns. 212 tests passing.
 
 ## In progress
 
@@ -22,7 +24,7 @@ Nothing.
 
 ## Not yet implemented
 
-- Refunds, cancellations/voids and returns to stock (sales and payments currently cannot be corrected in the app).
+- Reversing a single wrongly recorded payment (wrong customer/amount); exchanges; store credit.
 - Promotions and promotional prices.
 - Reports (daily cash-up by method, sales by product/staff, debtors aging), bulk imports.
 - Audit logging of edits (who changed prices, stock, customers, users).
@@ -32,7 +34,7 @@ Nothing.
 
 ## Needs attention
 
-1. **Mistakes cannot be corrected yet.** A wrongly entered sale or payment stays as recorded until refunds/cancellations exist — build that next before real use.
+1. A payment recorded against the wrong customer or with the wrong amount still cannot be reversed (sales can now be returned/cancelled). Decide whether payment reversal is needed before go-live.
 2. ADR-0012 (admins only manage products/prices) was taken as a default without an owner answer — confirm.
 3. "Admin-approved" discounts are implemented as "an admin enters the sale" (ADR-0015); confirm this is enough or whether an approval request flow is wanted.
 4. `symfony/mime` advisory CVE-2026-45070 (medium) — `composer update symfony/mime` when a fixed release is resolvable.
@@ -40,7 +42,7 @@ Nothing.
 
 ## Recommended next task
 
-**Phase 4 — Refunds and cancellations:** admin-only cancellation of a sale and refund of payments, recorded as new reversal rows (never edits/deletes, ADR-0004), returning stock, recalculating balances; decide what happens to money already paid on a cancelled credit sale. Then **reports** (daily cash-up by payment method, debtors list). Create `REFUNDS_AND_CANCELLATIONS.md` and extend `FINANCIAL_LOGIC.md`.
+**Phase 5 — Reports:** daily cash-up (money in by method minus refunds by method, per cashier), sales by day/product/staff, debtors list with aging, stock report (low/out, stock value). Create `DASHBOARD_AND_REPORTING.md` and `modules/reports.md`. Consider basic audit logging alongside.
 
 ## Handover — Phase 1 (2026-11-01)
 
@@ -107,3 +109,20 @@ Nothing.
 | Known bugs | None known. Screens not reviewed visually in a browser in this session |
 | Decisions | ADR-0006 accepted; ADR-0007 partly in place; new ADR-0015 (discounts/credit), ADR-0016 (receipt counter), ADR-0017 (idempotency) |
 | Next phase | Phase 4 — Refunds and cancellations, then reports |
+
+## Handover — Phase 4: Returns and cancellations (2026-11-01)
+
+| Item | Detail |
+|---|---|
+| Implemented | Admin-only item returns and cancellations from the receipt page; discount-aware values; debt reduced first, rest refunded with method; per-item restock; `RT-` numbers; return history on receipts; Cancelled status; balances, payments, dashboard and lists net of returns |
+| Files created | Migration `2026_11_01_215330_create_sale_returns`; `app/Models/{SaleReturn,SaleReturnLine}.php`; `app/Services/ReturnService.php`; `app/Exceptions/Sales/SaleReturnException.php`; tests `tests/Feature/Services/ReturnServiceTest.php`, `tests/Feature/Sales/ReturnsScreenTest.php`; doc `REFUNDS_AND_CANCELLATIONS.md` |
+| Files modified | `Sale.php` (returns, net total, balance, `recalculateStatus`, `OWED_SQL`), `SaleLine.php` (`returned_quantity`), `SaleStatus.php` (Cancelled), `ReceiptNumberService.php` (return numbers), `PaymentService.php`, `Customer.php`, `Dashboard.php`, `Customers/Index.php`, `Payments/Index.php`, `Sales/Index.php`, `Sales/Show.php` + view, `SalePolicy.php` (`refund`), `sale-status` component, `config/sales.php` |
+| Database changes | `sale_returns`, `sale_return_lines`; `sales.returned_pesewas`; `sale_lines.returned_quantity` |
+| Services | `ReturnService` (new); `ReceiptNumberService::nextReturnNumber` |
+| Livewire components | `Sales\Show` return panel |
+| Business rules | RF1–RF9 |
+| Tests executed | `php artisan test --compact`; `vendor/bin/pint`; `npm run build`; `php artisan migrate` |
+| Test results | 212 passed, 912 assertions |
+| Known bugs | None known. Return panel not reviewed visually in a browser |
+| Decisions | ADR-0020 |
+| Next phase | Phase 5 — Reports |

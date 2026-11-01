@@ -95,7 +95,7 @@
              :title="$editing ? 'Edit user' : 'New user'"
              :subtitle="$editing ? $editing->name.' · last signed in '.($editing->last_login_at?->diffForHumans() ?? 'never') : 'The new user can sign in straight away.'">
         <form wire:submit="save" class="flex min-h-0 flex-1 flex-col">
-            <div class="grid flex-1 content-start gap-8 overflow-y-auto px-6 py-6">
+            <div class="panel-scroll grid min-h-0 flex-1 content-start gap-8 overflow-y-auto px-6 py-6">
                 <section class="grid gap-4">
                     <h3 class="text-[11px] font-bold tracking-wider text-slate-400 uppercase">Profile</h3>
                     <x-input wire:model="form.name" id="form-name" label="Full name" placeholder="e.g. Ama Mensah" required />

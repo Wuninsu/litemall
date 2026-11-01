@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * One product on a sale. Name, SKU and unit price are copied from the product at the moment of sale
  * so later product changes never alter past sales (ADR-0006).
  */
-#[Fillable(['sale_id', 'product_id', 'product_name', 'product_sku', 'unit_price_pesewas', 'price_tier', 'quantity', 'line_total_pesewas'])]
+#[Fillable(['sale_id', 'product_id', 'product_name', 'product_sku', 'unit_price_pesewas', 'price_tier', 'quantity', 'returned_quantity', 'line_total_pesewas'])]
 class SaleLine extends Model
 {
     use HasUuids;
@@ -27,6 +27,7 @@ class SaleLine extends Model
             'unit_price_pesewas' => 'integer',
             'price_tier' => PriceTier::class,
             'quantity' => 'integer',
+            'returned_quantity' => 'integer',
             'line_total_pesewas' => 'integer',
         ];
     }
@@ -45,6 +46,14 @@ class SaleLine extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    /**
+     * Units that can still be returned.
+     */
+    public function returnableQuantity(): int
+    {
+        return max(0, $this->quantity - $this->returned_quantity);
     }
 
     public function formattedUnitPrice(): string

@@ -24,6 +24,7 @@
 
 | `App\Exceptions\Sales\SaleException` | Sale rule violations; exposes `$field` (`lines`, `customer`, `discount`, `payment`) for the New sale screen. Messages listed under SaleService below |
 | `App\Exceptions\Payments\PaymentException` | `amountMustBePositive()`, `nothingOwed()`, `exceedsBalance(int $owed)` |
+| `App\Exceptions\Sales\SaleReturnException` | Return rule violations (`alreadyCancelled`, `nothingSelected`, `tooMany`, `unknownLine`, `reasonRequired`, `refundMethodRequired`); exposes `$field` (`lines`, `reason`, `refundMethod`) |
 
 ## Support helpers (`app/Support`)
 
@@ -144,7 +145,19 @@ Normalisation: name squished, SKU trimmed + upper-cased (blank → `null`), cate
 
 | Method | Output | DB operations |
 |---|---|---|
-| `next()` | `string` | insert-or-ignore counter row; `lockForUpdate`; increment |
+| `next()` / `nextReturnNumber()` | `string` (`R-000001` / `RT-000001`) | insert-or-ignore counter row (`receipt` / `return`); `lockForUpdate`; increment |
+
+### ReturnService
+- **File:** [app/Services/ReturnService.php](../app/Services/ReturnService.php)
+- **Responsibility:** returns and cancellations (ADR-0020): value returned items, reduce the debt first, compute the refund, restock, number the return, update the sale. See [REFUNDS_AND_CANCELLATIONS.md](REFUNDS_AND_CANCELLATIONS.md).
+- **Dependencies:** `ReceiptNumberService` (constructor), models `Sale`, `SaleLine`, `SaleReturn`, `Product`.
+- **Used by:** `SalesShow` (admins only — callers authorise `SalePolicy::refund`).
+- **Related tests:** `tests/Feature/Services/ReturnServiceTest.php`, `tests/Feature/Sales/ReturnsScreenTest.php`
+
+| Method | Input | Output | Throws | DB operations |
+|---|---|---|---|---|
+| `preview(Sale, array $quantities)` | sale line id → units | `{credit, debtReduction, refund, isCancellation, values}` | `SaleReturnException` | read only |
+| `process(Sale, array $quantities, array $restock, string $reason, User $actor, ?PaymentMethod $refundMethod, ?string $refundReference, ?string $idempotencyKey)` | `restock`: line id → bool | `SaleReturn` with `lines` | `SaleReturnException` (`alreadyCancelled`, `nothingSelected`, `tooMany`, `unknownLine`, `reasonRequired`, `refundMethodRequired`) | One transaction: idempotency lookup; `lockForUpdate` on the sale, its lines and restocked products; counter `return`; insert `sale_returns`, `sale_return_lines`; increment `sale_lines.returned_quantity` and `products.stock_quantity`; update `sales.returned_pesewas`, `paid_pesewas`, `status` |
 
 ## Catalogue entry template
 

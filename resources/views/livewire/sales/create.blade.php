@@ -299,8 +299,8 @@
 
     {{-- ===================== Checkout: payment method and amount received ===================== --}}
     <x-modal wire:model="showPaymentModal" title="Take payment" :subtitle="($this->customer?->name ?? 'Walk-in customer').' · '.$this->summary['items'].' '.Str::plural('item', $this->summary['items'])" max-width="max-w-lg">
-        <form wire:submit="complete">
-            <div class="grid gap-3.5 px-5 py-4">
+        <form wire:submit="complete" class="flex min-h-0 flex-1 flex-col">
+            <div class="panel-scroll grid min-h-0 flex-1 content-start gap-3.5 px-5 py-4">
                 <div class="flex items-center justify-between rounded-xl bg-brand px-4 py-2.5 text-teal-50">
                     <span class="text-sm font-semibold text-teal-200">
                         Amount due
@@ -388,7 +388,7 @@
                 @endforeach
             </div>
 
-            <div class="flex gap-2 border-t border-slate-100 bg-slate-50 px-5 py-3">
+            <div class="flex shrink-0 gap-2 border-t border-slate-100 bg-slate-50 px-5 py-3">
                 <x-button variant="ghost" x-on:click="open = false" :loading="false">Back</x-button>
                 <x-button type="submit" target="complete" loading-text="Saving sale…" class="flex-1 justify-between! px-4!">
                     <span>Complete sale</span>
@@ -400,8 +400,8 @@
 
     {{-- ===================== New customer (stays on the POS) ===================== --}}
     <x-modal wire:model="showCustomerModal" title="New customer" subtitle="They will be selected for this sale." max-width="max-w-md">
-        <form wire:submit="saveNewCustomer">
-            <div class="grid gap-4 px-6 py-5">
+        <form wire:submit="saveNewCustomer" class="flex min-h-0 flex-1 flex-col">
+            <div class="panel-scroll grid min-h-0 flex-1 content-start gap-4 px-6 py-5">
                 <x-input wire:model="customerForm.name" id="new-customer-name" label="Full name" placeholder="e.g. Akua Serwaa" required autofocus />
                 <x-input wire:model="customerForm.phone" id="new-customer-phone" type="tel" label="Phone number" placeholder="024 412 3456" inputmode="tel" autocomplete="off" required />
                 <x-input wire:model="customerForm.address" id="new-customer-address" label="Location (optional)" placeholder="e.g. Madina, Accra" />
@@ -411,7 +411,7 @@
                     Wholesale customer <span class="text-slate-400">(uses wholesale prices automatically)</span>
                 </label>
             </div>
-            <div class="flex justify-end gap-3 border-t border-slate-100 bg-slate-50 px-6 py-4">
+            <div class="flex shrink-0 justify-end gap-3 border-t border-slate-100 bg-slate-50 px-6 py-4">
                 <x-button variant="ghost" wire:click="closeNewCustomer" :loading="false">Cancel</x-button>
                 <x-button type="submit" target="saveNewCustomer" loading-text="Saving…">Add and select</x-button>
             </div>

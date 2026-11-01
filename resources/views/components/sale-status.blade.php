@@ -1,4 +1,4 @@
-{{-- Payment-status pill for a sale: Paid (green), Part-paid (amber), Unpaid (red). --}}
+{{-- Payment-status pill for a sale: Paid (green), Part-paid (amber), Unpaid (red), Cancelled (grey, struck through). --}}
 @props(['status'])
 
 @php
@@ -6,6 +6,7 @@
         'paid' => 'bg-emerald-50 text-emerald-700 ring-emerald-600/15',
         'partly_paid' => 'bg-amber-50 text-amber-800 ring-amber-600/20',
         'unpaid' => 'bg-red-50 text-red-700 ring-red-600/15',
+        'cancelled' => 'bg-slate-100 text-slate-500 ring-slate-400/30 line-through',
     ];
 @endphp
 

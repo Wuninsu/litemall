@@ -173,3 +173,12 @@ Never silently change an Accepted decision — add a new ADR that supersedes it.
 - **Implications:** If wholesale abuse becomes a concern, restrict `setPriceTier` to admins or to wholesale customers (new ADR). Quantity breaks (option c) would replace `unitPriceFor()` with a lookup table.
 
 **ADR-0018 amendment (2026-11-01):** the "Sale complete" view now shows an animated on-screen receipt printer (`<x-receipt-printer>`), inspired by a public UI experiment the owner pointed to (dqnamo.com/experiments/receipt-printer). It was rebuilt here with CSS keyframes and Alpine instead of React/Motion, so no dependency was added. It is decorative: real printing still uses the receipt page, and the cashier can start the next sale without waiting for the animation.
+
+## ADR-0020 — Returns and cancellations as reversal records
+- **Date:** 2026-11-01 · **Status:** Accepted (owner choices: admins only; full cancel + item returns; reduce debt first then refund; ask about stock each time)
+- **Problem:** Sales and payments could not be corrected.
+- **Alternatives:** Edit/delete the sale; negative "credit note" sales; separate return records linked to the original sale.
+- **Chosen:** `sale_returns` + `sale_return_lines` (numbered `RT-`), created only by `ReturnService` in one locked transaction. The sale keeps its original lines and total; running totals `returned_pesewas` and `paid_pesewas` (now "payments in minus refunds out") and `status` (new `Cancelled`) change. Balance everywhere = `total − returned − paid` (`Sale::OWED_SQL`). Returned value is proportional to the discount; a cancellation credits the exact remainder. Refunds are stored on the return (amount, method, reference), not as negative payments.
+- **Advantages:** Full audit trail; no rounding residue; balances and allocation stay consistent; nothing deleted.
+- **Disadvantages:** `paid_pesewas` no longer equals the sum of allocations once refunds exist (it equals allocations − refunds on that sale); reports must account for returns.
+- **Implications:** A daily cash-up report must subtract refunds by method. Payment reversal (wrong payment recorded) is not covered and would need its own record type.

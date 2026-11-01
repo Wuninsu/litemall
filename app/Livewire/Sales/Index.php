@@ -53,7 +53,7 @@ class Index extends Component
             ->when($this->period === '7days', fn ($query) => $query->where('sold_at', '>=', today()->subDays(6)))
             ->when($this->period === '30days', fn ($query) => $query->where('sold_at', '>=', today()->subDays(29)));
 
-        $totals = (clone $query)->selectRaw('count(*) as count, coalesce(sum(total_pesewas), 0) as total, coalesce(sum(paid_pesewas), 0) as paid')->first();
+        $totals = (clone $query)->selectRaw('count(*) as count, coalesce(sum(total_pesewas - returned_pesewas), 0) as total, coalesce(sum(paid_pesewas), 0) as paid')->first();
 
         return view('livewire.sales.index', [
             'sales' => $query->with(['customer', 'seller'])->withCount('lines')->latest('sold_at')->latest('receipt_number')->paginate(20),

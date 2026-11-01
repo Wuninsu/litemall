@@ -69,3 +69,20 @@
         transition: none;
     }
 }
+
+/*
+ * Scrollable body of the right-hand panels (x-modal position="right"): a slim scrollbar that stays visible,
+ * so it is obvious the panel has more fields below.
+ */
+@utility panel-scroll {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: auto;
+    scrollbar-color: #94a3b8 #f1f5f9;
+    scrollbar-gutter: stable;
+}
+
+/* While any x-modal is open the page behind it must not scroll (set by the modal component). */
+html.modal-open {
+    overflow: hidden;
+}

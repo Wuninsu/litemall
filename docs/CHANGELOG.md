@@ -5,6 +5,14 @@ All notable changes to this project are recorded here. Newest entries at the top
 ## [Unreleased]
 
 ### Added
+- Phase 4 — Returns and cancellations (2026-11-01, ADR-0020):
+  - Administrators can return some items from a sale or cancel it ("Return everything") from the receipt page, with a required reason and a live preview.
+  - The value returned (price paid less its share of the discount) first reduces what is owed; the rest is refunded with a method and reference. No store credit.
+  - Per item, choose whether it goes back into stock.
+  - Return numbers `RT-000001`; return history, "N returned", Returned / Net total and a CANCELLED stamp on the receipt; Cancelled status.
+  - Balances, oldest-first payments, customer balances, sales list and dashboard use amounts after returns; "Received today" is net of refunds.
+  - Tables `sale_returns`, `sale_return_lines`; columns `sales.returned_pesewas`, `sale_lines.returned_quantity`; `ReturnService`; `SalePolicy::refund`.
+  - 14 new tests (212 total). Docs: `REFUNDS_AND_CANCELLATIONS.md`.
 - Wholesale pricing (2026-11-01, ADR-0019):
   - Optional wholesale price and "wholesale from" minimum quantity per product (admins); shown in the product list, details page and panel.
   - "Wholesale customer" flag (Customers panel and POS new-customer dialog), shown as a badge.

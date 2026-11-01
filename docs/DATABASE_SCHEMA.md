@@ -247,3 +247,50 @@ Adds (ADR-0019):
 | customers | is_wholesale | boolean | no | `false` | choosing the customer on the POS switches to wholesale prices |
 | sales | price_tier | varchar(10) | no | `'retail'` | `retail` or `wholesale` (`PriceTier`) — the mode the sale was rung up in |
 | sale_lines | price_tier | varchar(10) | no | `'retail'` | the price actually charged on this line (a wholesale sale can have retail lines) |
+
+## Migration `2026_11_01_215330_create_sale_returns`
+
+Adds (ADR-0020):
+
+| Table | Column | Type | Null | Default | Notes |
+|---|---|---|---|---|---|
+| sales | returned_pesewas | bigint unsigned | no | `0` | Σ credits of its returns; net total = total − returned |
+| sale_lines | returned_quantity | int unsigned | no | `0` | units already returned (≤ quantity) |
+
+`sales.status` may now also be `cancelled`. `sales.paid_pesewas` = Σ allocations − Σ refunds of its returns.
+
+### `sale_returns`
+Purpose: one return or cancellation against a sale. Model: `App\Models\SaleReturn`. Never edited or deleted.
+
+| Column | Type | Null | Notes |
+|---|---|---|---|
+| id | uuid | no | **PK** |
+| return_number | varchar(20) | no | **unique**; `RT-000001` (counter `return`) |
+| sale_id | uuid | no | **FK → `sales.id`, restrict** |
+| processed_by | uuid | no | **FK → `users.id`, restrict** (an administrator) |
+| type | varchar(20) | no | `return` or `cancellation` |
+| reason | varchar(500) | no | required |
+| credit_pesewas | bigint unsigned | no | value returned |
+| debt_reduction_pesewas | bigint unsigned | no | part of the credit that reduced what was owed |
+| refund_pesewas | bigint unsigned | no | part paid back to the customer (credit − debt reduction) |
+| refund_method | varchar(20) | yes | `PaymentMethod` value; set only when refund > 0 |
+| refund_reference | varchar(100) | yes | |
+| idempotency_key | uuid | yes | **unique** |
+| returned_at | timestamp | no | **indexed** |
+| created_at, updated_at | timestamp | yes | |
+
+Composite index: (`sale_id`, `returned_at`).
+
+### `sale_return_lines`
+Purpose: units of one sale line in a return. Model: `App\Models\SaleReturnLine`.
+
+| Column | Type | Null | Notes |
+|---|---|---|---|
+| id | uuid | no | **PK** |
+| sale_return_id | uuid | no | **FK → `sale_returns.id`, restrict** |
+| sale_line_id | uuid | no | **FK → `sale_lines.id`, restrict** |
+| product_id | uuid | no | **FK → `products.id`, restrict** |
+| quantity | int unsigned | no | ≥ 1 |
+| value_pesewas | bigint unsigned | no | share of the credit for these units |
+| restocked | boolean | no | whether the units were put back into stock |
+| created_at, updated_at | timestamp | yes | |

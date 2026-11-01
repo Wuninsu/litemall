@@ -116,7 +116,7 @@ class ProductManagementTest extends TestCase
         Livewire::test(Index::class)
             ->call('edit', $product->id)
             ->assertSet('form.price', '1899.50')
-            ->assertSee('Past sales keep the price they were sold at.')
+            ->assertSee('past sales keep the price they were sold at.')
             ->set('form.price', '1,750')
             ->call('save')
             ->assertHasNoErrors()

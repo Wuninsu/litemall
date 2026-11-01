@@ -8,6 +8,7 @@ A staff-only web application where:
 - Staff register and look up customers (one customer per Ghana phone number); administrators can deactivate them.
 - Everyone can browse products with photos, GH₵ prices and stock levels, and open a details page; administrators add products and set prices and stock.
 - Staff ring up sales (products, quantities, optional customer, one discount, payment now or on credit), print receipts, and receive later payments that settle the customer's oldest unpaid sales first. Stock goes down with each sale.
+- Administrators can return items or cancel a sale from its receipt: the value first reduces what is owed, the rest is refunded, and returned items can go back into stock.
 - The dashboard shows today's sales and payments, what customers owe, low stock and recent sales.
 
 ## Intended purpose (Planned)
@@ -60,7 +61,7 @@ Phases 1–3 (foundations, UI, customers, products, sales and payments) complete
 
 ## Known limitations
 
-- Sales and payments cannot be corrected yet (no refunds/cancellations); no reports.
+- No reports yet; a wrongly recorded payment cannot be reversed (sales can be returned or cancelled by admins).
 - No audit log, no 2FA.
 - `composer audit` reports CVE-2026-45070 in `symfony/mime` (medium), unresolved.
 

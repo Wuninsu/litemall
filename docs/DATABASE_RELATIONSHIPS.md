@@ -19,6 +19,9 @@ _As of 2026-11-01 (Phase 3)._
 | `Payment` | `receiver()` | belongsTo | `User` | `payments.received_by` |
 | `Payment` | `allocations()` | hasMany | `PaymentAllocation` | `payment_allocations.payment_id` |
 | `PaymentAllocation` | `payment()`, `sale()` | belongsTo | `Payment`, `Sale` | |
+| `Sale` | `returns()` | hasMany | `SaleReturn` | `sale_returns.sale_id` |
+| `SaleReturn` | `sale()`, `processor()`, `lines()` | belongsTo / belongsTo / hasMany | `Sale`, `User`, `SaleReturnLine` | |
+| `SaleReturnLine` | `saleReturn()`, `saleLine()` | belongsTo | `SaleReturn`, `SaleLine` | |
 
 Payments and sales are **many-to-many through `payment_allocations`**: one payment can settle several sales (oldest first), and one sale can be paid by several payments (instalments).
 
@@ -37,6 +40,8 @@ All foreign keys use **`restrictOnDelete`**: nothing financial can be deleted wh
 | `payments.received_by` | `users.id` | many → one |
 | `payment_allocations.payment_id` | `payments.id` | many → one (unique with `sale_id`) |
 | `payment_allocations.sale_id` | `sales.id` | many → one |
+| `sale_returns.sale_id`, `.processed_by` | `sales.id`, `users.id` | many → one |
+| `sale_return_lines.sale_return_id`, `.sale_line_id`, `.product_id` | `sale_returns.id`, `sale_lines.id`, `products.id` | many → one |
 | `sessions.user_id` | `users.id` | logical only (no FK) |
 
 ```mermaid
@@ -51,6 +56,9 @@ erDiagram
     products ||--o{ sale_lines : "product_id"
     payments ||--|{ payment_allocations : "payment_id"
     sales ||--o{ payment_allocations : "sale_id"
+    sales ||--o{ sale_returns : "sale_id"
+    sale_returns ||--|{ sale_return_lines : "sale_return_id"
+    sale_lines ||--o{ sale_return_lines : "sale_line_id"
     sales {
         uuid id PK
         string receipt_number UK
@@ -80,4 +88,4 @@ erDiagram
 ## Cascading and deletion rules
 
 - No table cascades deletes. Users, customers and products are deactivated; sales and payments are permanent (ADR-0004).
-- Future refunds/cancellations must add new rows (reversals) rather than delete or edit these.
+- Returns and cancellations add `sale_returns` rows (ADR-0020); they never delete or edit sales or payments.

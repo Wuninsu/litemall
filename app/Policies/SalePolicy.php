@@ -7,7 +7,7 @@ use App\Models\User;
 
 /**
  * All signed-in staff record and view sales. Discount limits are enforced in SaleService;
- * refunds and cancellations (not built yet) will be admin-only.
+ * returns, cancellations and refunds are admin-only.
  */
 class SalePolicy
 {
@@ -24,5 +24,13 @@ class SalePolicy
     public function create(User $user): bool
     {
         return true;
+    }
+
+    /**
+     * Returns, cancellations and refunds are admin-only (owner decision, ADR-0020).
+     */
+    public function refund(User $user, Sale $sale): bool
+    {
+        return $user->isAdmin();
     }
 }

@@ -2,7 +2,9 @@
     Livewire-driven dialog. `wire:model` names a boolean property on the parent component
     that controls visibility, e.g. <x-modal wire:model="showModal" title="New user">.
 
-    position="center" (default): centred dialog, bottom sheet on phones.
+    position="center" (default): centred dialog, bottom sheet on phones. It never grows taller than the screen; give
+    the slot the same flex-column form / `panel-scroll min-h-0 flex-1` body as the right panel so the body scrolls
+    and the footer stays visible.
     position="right": full-height panel sliding in from the right edge. The slot should be a
     flex column (e.g. a <form class="flex min-h-0 flex-1 flex-col">) with a scrollable body
     and a footer, so the footer stays pinned to the bottom.
@@ -15,6 +17,7 @@
 @endphp
 
 <div x-data="{ open: $wire.entangle('{{ $model }}') }"
+     x-effect="document.documentElement.classList.toggle('modal-open', open)"
      x-show="open"
      x-cloak
      x-on:keydown.escape.window="open = false"
@@ -35,7 +38,7 @@
         <div x-show="open"
              x-transition:enter="ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-4 sm:scale-95" x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
              x-transition:leave="ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0 translate-y-4 sm:scale-95"
-             class="relative w-full {{ $maxWidth }} overflow-hidden rounded-2xl bg-white shadow-2xl">
+             class="relative flex max-h-[calc(100dvh-2rem)] w-full {{ $maxWidth }} flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
     @endif
         <div class="flex shrink-0 items-start justify-between gap-4 border-b border-slate-100 px-6 py-5">
             <div>

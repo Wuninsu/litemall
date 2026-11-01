@@ -9,7 +9,7 @@ _Implemented in Phase 3 (2026-11-01)._
 | At the counter, during a sale | New sale screen | `SaleService::create()` | That sale only |
 | Later, towards what a customer owes | Payments → "Receive payment" | `PaymentService::receive()` | The customer's unpaid sales, **oldest first** (ADR-0006) |
 
-Both create a `payments` row and one or more `payment_allocations` rows. A sale's `paid_pesewas` always equals the sum of its allocations, and its `status` is recomputed from it (`SaleStatus::for()`).
+Both create a `payments` row and one or more `payment_allocations` rows. A sale's `paid_pesewas` equals the sum of its allocations minus any refunds on its returns (ADR-0020), and its `status` is recomputed by `Sale::recalculateStatus()`. Balances use `total − returned − paid`; cancelled sales owe nothing and are skipped by allocation.
 
 ## Oldest-first allocation
 

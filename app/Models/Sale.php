@@ -18,7 +18,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * A completed sale. Amounts are integer pesewas; `paid_pesewas` and `status` are maintained by
  * SaleService / PaymentService only. Sales are never edited or deleted (ADR-0004).
  */
-#[Fillable(['receipt_number', 'customer_id', 'sold_by', 'price_tier', 'subtotal_pesewas', 'discount_pesewas', 'discount_reason', 'total_pesewas', 'paid_pesewas', 'status', 'notes', 'idempotency_key', 'sold_at'])]
+#[Fillable(['receipt_number', 'customer_id', 'sold_by', 'price_tier', 'subtotal_pesewas', 'discount_pesewas', 'discount_reason', 'total_pesewas', 'returned_pesewas', 'paid_pesewas', 'status', 'notes', 'idempotency_key', 'sold_at'])]
 class Sale extends Model
 {
     /** @use HasFactory<SaleFactory> */
@@ -33,6 +33,7 @@ class Sale extends Model
             'subtotal_pesewas' => 'integer',
             'discount_pesewas' => 'integer',
             'total_pesewas' => 'integer',
+            'returned_pesewas' => 'integer',
             'paid_pesewas' => 'integer',
             'status' => SaleStatus::class,
             'price_tier' => PriceTier::class,
@@ -72,15 +73,58 @@ class Sale extends Model
         return $this->hasMany(PaymentAllocation::class);
     }
 
+    /**
+     * Returns and cancellations against this sale (ADR-0020).
+     *
+     * @return HasMany<SaleReturn, $this>
+     */
+    public function returns(): HasMany
+    {
+        return $this->hasMany(SaleReturn::class);
+    }
+
+    /**
+     * What the sale is worth after returns: total − returned.
+     */
+    public function netTotalPesewas(): int
+    {
+        return max(0, $this->total_pesewas - $this->returned_pesewas);
+    }
+
+    /**
+     * Still owed: net total − money kept (payments in minus refunds out).
+     */
     public function balancePesewas(): int
     {
-        return max(0, $this->total_pesewas - $this->paid_pesewas);
+        return max(0, $this->netTotalPesewas() - $this->paid_pesewas);
+    }
+
+    public function isCancelled(): bool
+    {
+        return $this->status === SaleStatus::Cancelled;
+    }
+
+    /**
+     * Sets `status` from the current amounts. Callers save the model.
+     */
+    public function recalculateStatus(): void
+    {
+        $this->status = SaleStatus::for($this->total_pesewas, $this->paid_pesewas, $this->returned_pesewas);
     }
 
     public function money(string $column): string
     {
-        return Money::format($column === 'balance' ? $this->balancePesewas() : (int) $this->{$column.'_pesewas'});
+        return Money::format(match ($column) {
+            'balance' => $this->balancePesewas(),
+            'net' => $this->netTotalPesewas(),
+            default => (int) $this->{$column.'_pesewas'},
+        });
     }
+
+    /**
+     * SQL expression for what is still owed on a sale row, used by sums and filters.
+     */
+    public const OWED_SQL = 'total_pesewas - returned_pesewas - paid_pesewas';
 
     /**
      * Sales with money still owed, oldest first — the order payments are applied in (ADR-0006).
@@ -89,7 +133,7 @@ class Sale extends Model
      */
     public function scopeOutstanding(Builder $query): void
     {
-        $query->whereColumn('paid_pesewas', '<', 'total_pesewas')
+        $query->whereRaw(self::OWED_SQL.' > 0')
             ->orderBy('sold_at')
             ->orderBy('receipt_number');
     }

@@ -87,3 +87,17 @@ Plain-language rules the system enforces, why they exist, and where. _As of 2026
 | W4 | Customers can be marked as wholesale customers; choosing one on the POS switches the sale to wholesale. Switching back to walk-in returns to retail. | Fewer mistakes with regular traders. | `customers.is_wholesale`; `Sales\Create::selectCustomer/clearCustomer` |
 | W5 | The tier is recorded on the sale and on every line, together with the price charged, and shown on receipts and the sales list. Later price changes never alter past sales. | Audit trail for lower-price sales; historical pricing (S4). | `sales.price_tier`, `sale_lines.price_tier`, `unit_price_pesewas` snapshot |
 | W6 | Discounts (S6–S7) still apply on top of wholesale prices. | One discount mechanism. | `SaleService::discountFor` on the wholesale subtotal |
+
+## Returns, cancellations and refunds (ADR-0020)
+
+| # | Rule | Why | Enforced in |
+|---|---|---|---|
+| RF1 | Only administrators can return items, cancel sales or give refunds. | Owner decision: money going back out needs a manager. | `SalePolicy::refund`; `Sales\Show` actions; disabled button for cashiers |
+| RF2 | A return takes some units from one or more lines; returning everything left on the sale is a **cancellation**. Each line can only return what was sold minus what was already returned. | Covers faulty items and sales entered by mistake. | `ReturnService::calculate` (`tooMany`, `nothingSelected`, `unknownLine`, `alreadyCancelled`) |
+| RF3 | A reason is required for every return. | Accountability. | `Sales\Show` validation; `ReturnService` (`reasonRequired`) |
+| RF4 | Returned units are valued at the price on the sale line less their share of the sale discount, half-up to the pesewa. A cancellation credits exactly what is left on the sale. | Customers get back what they actually paid for those items; totals always reconcile. | `ReturnService::calculate` |
+| RF5 | The value returned first reduces what is still owed on that sale; only the remainder is refunded, and a refund needs a method (Cash, Mobile Money, Bank transfer, Card) with an optional reference. No store credit. | Owner decision. | `ReturnService` (`refundMethodRequired`) |
+| RF6 | For each returned line staff choose whether the units go back into stock (default yes; untick for damaged/faulty). | Owner decision: "ask each time". | `restock` per line → `products.stock_quantity` increment |
+| RF7 | Returns never edit or delete the original sale, its lines or payments. They add a numbered return record (`RT-000001`) and update the sale's running totals and status. | Financial history is preserved (ADR-0004). | `sale_returns`, `sale_return_lines`; `Sale::recalculateStatus()` |
+| RF8 | A fully returned sale is **Cancelled**: it owes nothing, takes no further payments or returns, and is excluded from sales counts. | Clear status for void sales. | `SaleStatus::for`, `Sale::OWED_SQL`, `scopeOutstanding` |
+| RF9 | Two returns at the same time cannot return the same units twice; submitting the same return twice records it once. | Money and stock must add up. | Row locks on sale, lines and products; `sale_returns.idempotency_key` |

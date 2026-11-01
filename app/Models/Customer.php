@@ -65,7 +65,7 @@ class Customer extends Model
             return (int) $this->attributes['balance_pesewas'];
         }
 
-        return (int) $this->sales()->sum(DB::raw('total_pesewas - paid_pesewas'));
+        return (int) $this->sales()->sum(DB::raw(Sale::OWED_SQL));
     }
 
     /**
@@ -77,7 +77,7 @@ class Customer extends Model
     {
         $query->addSelect([
             'balance_pesewas' => Sale::query()
-                ->selectRaw('coalesce(sum(total_pesewas - paid_pesewas), 0)')
+                ->selectRaw('coalesce(sum('.Sale::OWED_SQL.'), 0)')
                 ->whereColumn('sales.customer_id', 'customers.id'),
         ]);
     }

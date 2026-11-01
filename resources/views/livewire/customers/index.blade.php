@@ -100,7 +100,7 @@
              :title="$editing ? 'Edit customer' : 'New customer'"
              :subtitle="$editing ? $editing->name.' · added '.$editing->created_at->format('j M Y') : 'Name and phone number are required.'">
         <form wire:submit="save" class="flex min-h-0 flex-1 flex-col">
-            <div class="grid flex-1 content-start gap-8 overflow-y-auto px-6 py-6">
+            <div class="panel-scroll grid min-h-0 flex-1 content-start gap-8 overflow-y-auto px-6 py-6">
                 <section class="grid gap-4">
                     <h3 class="text-[11px] font-bold tracking-wider text-slate-400 uppercase">Contact</h3>
                     <x-input wire:model="form.name" id="customer-name" label="Full name" placeholder="e.g. Akua Serwaa" required />

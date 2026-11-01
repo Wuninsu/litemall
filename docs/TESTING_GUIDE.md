@@ -17,7 +17,7 @@ composer test                                               # config:clear then 
 vendor/bin/phpunit                                          # direct runner, same arguments
 ```
 
-Current result (2026-11-01): **198 tests, all passing** (also verified with no `public/build` present).
+Current result (2026-11-01): **212 tests, 912 assertions, all passing** (also verified with no `public/build` present).
 
 ## Test map
 
@@ -41,6 +41,8 @@ Current result (2026-11-01): **198 tests, all passing** (also verified with no `
 | `tests/Feature/Services/PaymentServiceTest.php` | Oldest-first across three sales (worked example); preview = saved split; exact settlement; zero/negative/over-balance refused; nothing owed; other customers untouched; idempotency |
 | `tests/Feature/Sales/SalesScreensTest.php` | Guest redirect; cashier rings up a walk-in sale end to end on the POS (completion screen, New sale resets); receipt printer shows the real sale; cash change and quick-cash amounts; non-cash overpayment refused; Enter adds by exact SKU and category chips filter; steppers respect stock; Charge opens the payment dialog pre-filled with the total; walk-in default; new customer from the POS modal (pre-fill, create, select, sell on credit, duplicate number); credit needs a customer (phone search); cashier discount limit; out-of-stock product; receipt page content; sales list filters and totals |
 | `tests/Feature/Sales/WholesalePricingTest.php` | `unitPriceFor` rules; wholesale sale with mixed lines (wholesale, below minimum, no wholesale price); retail by default; later wholesale price change does not alter sale; wholesale customer switches the POS and totals; manual switch and walk-in back to retail; admin wholesale price validation and clearing; service rejects wholesale above retail; wholesale customers from Customers page and POS; receipt and list show wholesale |
+| `tests/Feature/Services/ReturnServiceTest.php` | Paid sale return with refund and restock; unpaid credit return reduces debt only; debt first then refund (1,000/400/800); refund needs method; two-step cancellation of a discounted sale ends at exactly 0; quantity, reason and line checks; idempotency; payments after a return use the reduced balance and skip cancelled sales; preview = saved |
+| `tests/Feature/Sales/ReturnsScreenTest.php` | Cashier blocked (button disabled, actions 403); admin partial return with preview, reason, refund method and history; return everything cancels; too many units error; dashboard and list net of returns |
 | `tests/Feature/Payments/PaymentsScreenTest.php` | Receive payment with preview via `?customer=`; only owing customers offered; validation and overpayment; full-balance button and `?receive=1`; customers balance column and owing filter; dashboard money figures |
 | `tests/Feature/Components/ButtonTest.php` | `x-button` rendering: plain button, loader wiring for `wire:click` (with escaped arguments), submit + `loading-text`, submit without target, loader off, link mode |
 | `tests/Feature/Console/CreateAdminUserTest.php` | Command with options, interactive prompts, invalid input |
@@ -61,6 +63,6 @@ Data: use factories and their states — `User::factory()->admin()`, `->cashier(
 
 Covered now (see the test map): exact payment, partial payment, overpayment refused, zero/negative amounts refused, oldest-first allocation across several sales, half-up rounding to the pesewa, cashier discount limit, duplicate submission.
 
-**Still to add** with Phase 4: refund after partial payment, cancellation after payment. Concurrent payments are protected by row locks but not exercised by a test (SQLite serialises writers); add one when a MySQL/PostgreSQL test database exists.
+Refund after partial payment and cancellation after payment are covered by `ReturnServiceTest`. Concurrent payments are protected by row locks but not exercised by a test (SQLite serialises writers); add one when a MySQL/PostgreSQL test database exists.
 
 Use `SaleFactory::amounts($total, $paid)` for raw balances and `SaleService` when a test needs real lines, stock changes and allocations.

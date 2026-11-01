@@ -2,11 +2,13 @@
 
 namespace App\Livewire;
 
+use App\Enums\SaleStatus;
 use App\Enums\UserRole;
 use App\Models\Customer;
 use App\Models\Payment;
 use App\Models\Product;
 use App\Models\Sale;
+use App\Models\SaleReturn;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
@@ -30,7 +32,7 @@ class Dashboard extends Component
     /**
      * Today's trading figures and what customers owe, in pesewas. Shown to everyone.
      *
-     * @return array{salesToday: int, salesCountToday: int, receivedToday: int, outstanding: int, owingCustomers: int}
+     * @return array{salesToday: int, salesCountToday: int, receivedToday: int, refundedToday: int, outstanding: int, owingCustomers: int}
      */
     #[Computed]
     public function moneyStats(): array
@@ -38,11 +40,13 @@ class Dashboard extends Component
         $today = Sale::query()->where('sold_at', '>=', today());
 
         return [
-            'salesToday' => (int) (clone $today)->sum('total_pesewas'),
-            'salesCountToday' => (clone $today)->count(),
-            'receivedToday' => (int) Payment::query()->where('received_at', '>=', today())->sum('amount_pesewas'),
-            'outstanding' => (int) Sale::query()->sum(DB::raw('total_pesewas - paid_pesewas')),
-            'owingCustomers' => Customer::query()->whereHas('sales', fn ($query) => $query->whereColumn('paid_pesewas', '<', 'total_pesewas'))->count(),
+            'salesToday' => (int) (clone $today)->sum(DB::raw('total_pesewas - returned_pesewas')),
+            'salesCountToday' => (clone $today)->where('status', '!=', SaleStatus::Cancelled)->count(),
+            'receivedToday' => (int) Payment::query()->where('received_at', '>=', today())->sum('amount_pesewas')
+                - (int) SaleReturn::query()->where('returned_at', '>=', today())->sum('refund_pesewas'),
+            'refundedToday' => (int) SaleReturn::query()->where('returned_at', '>=', today())->sum('refund_pesewas'),
+            'outstanding' => (int) Sale::query()->sum(DB::raw(Sale::OWED_SQL)),
+            'owingCustomers' => Customer::query()->whereHas('sales', fn ($query) => $query->whereRaw(Sale::OWED_SQL.' > 0'))->count(),
         ];
     }
 
