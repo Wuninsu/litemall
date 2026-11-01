@@ -1,6 +1,6 @@
 # Project Status
 
-_Last updated: 2026-11-01 (end of Phase 2 — Customers and products)_
+_Last updated: 2026-11-01 (end of Phase 3 — Sales and payments)_
 
 ## Complete
 
@@ -14,6 +14,7 @@ _Last updated: 2026-11-01 (end of Phase 2 — Customers and products)_
   - 44 passing feature tests at the end of the phase.
 - **UI refresh (ADR-0011):** brand auth pages, brand-teal sidebar shell, dashboard, users list with a single create/edit panel, shared Blade UI components including `x-button` with loader.
 - **Phase 2 — Customers and products:** customer register (Ghana phone normalisation, one customer per number), products with photos, GH₵ prices stored as pesewas, stock quantities and a details page; admin-only product management; dashboard counts. 139 tests passing.
+- **Phase 3 — Sales and payments:** sale entry with discounts (cashier limit), credit and counter payments; receipts `R-000001`; later payments allocated oldest-first; customer balances; dashboard money figures; idempotency keys. 178 tests passing.
 
 ## In progress
 
@@ -21,24 +22,25 @@ Nothing.
 
 ## Not yet implemented
 
-- Sales, discounts, promotions, receipts.
-- Payments, allocation, outstanding balances.
-- Refunds and cancellations.
-- Dashboard content, reports, bulk imports.
-- Audit logging of administrative and financial actions.
-- Offline readiness beyond UUIDs (device ids, idempotency, sync).
+- Refunds, cancellations/voids and returns to stock (sales and payments currently cannot be corrected in the app).
+- Promotions and promotional prices.
+- Reports (daily cash-up by method, sales by product/staff, debtors aging), bulk imports.
+- Audit logging of edits (who changed prices, stock, customers, users).
+- Stock movement history (stock is changed by admins and by sales, but changes are not logged).
+- Offline operation beyond UUIDs and idempotency keys (see OFFLINE_READINESS.md).
 - Production mailer configuration (reset emails currently go to the log).
 
 ## Needs attention
 
-1. **Decisions needed before Phase 3 (sales and payments):** ADR-0006 (oldest-first payment allocation; price snapshots on sale lines) and ADR-0007 (offline design) are still Proposed. Also undecided: how discounts work (per line or per sale; fixed or %; who may give them), receipt number format, and whether part-payment (credit) sales need a minimum deposit.
+1. **Mistakes cannot be corrected yet.** A wrongly entered sale or payment stays as recorded until refunds/cancellations exist — build that next before real use.
 2. ADR-0012 (admins only manage products/prices) was taken as a default without an owner answer — confirm.
-3. `symfony/mime` advisory CVE-2026-45070 (medium) — `composer update symfony/mime` when a fixed release is resolvable.
-4. Audit logging is absent; it should exist before any financial feature ships.
+3. "Admin-approved" discounts are implemented as "an admin enters the sale" (ADR-0015); confirm this is enough or whether an approval request flow is wanted.
+4. `symfony/mime` advisory CVE-2026-45070 (medium) — `composer update symfony/mime` when a fixed release is resolvable.
+5. No audit log of edits; decide before go-live.
 
 ## Recommended next task
 
-**Phase 3 — Sales:** after the decisions above, build `sales` and `sale_lines` (UUID keys, `_pesewas` amounts, unit-price snapshot per line, `restrictOnDelete` FKs), a `SaleService` with transactional totals and stock reduction (row-locked; consider a `stock_movements` ledger, ADR-0014), receipt numbering, and a full-page sale entry screen (too large for a side panel, see ADR-0011). Create `SALES_MANAGEMENT.md`, `modules/sales.md`, and extend `FINANCIAL_LOGIC.md` with worked GH₵ examples. Consider adding basic audit logging in the same phase.
+**Phase 4 — Refunds and cancellations:** admin-only cancellation of a sale and refund of payments, recorded as new reversal rows (never edits/deletes, ADR-0004), returning stock, recalculating balances; decide what happens to money already paid on a cancelled credit sale. Then **reports** (daily cash-up by payment method, debtors list). Create `REFUNDS_AND_CANCELLATIONS.md` and extend `FINANCIAL_LOGIC.md`.
 
 ## Handover — Phase 1 (2026-11-01)
 
@@ -88,3 +90,20 @@ Nothing.
 | Known bugs | None known. No visual browser review was done in this session |
 | Decisions | ADR-0012 (admin-only products/prices — default, to confirm), ADR-0013 (phone normalisation, `app/Support`), ADR-0014 (simple stock quantity, photos on public disk) |
 | Next phase | Phase 3 — Sales (decisions listed under *Needs attention* first) |
+
+## Handover — Phase 3: Sales and payments (2026-11-01)
+
+| Item | Detail |
+|---|---|
+| Implemented | New sale page, sales list, printable receipt, payments page with oldest-first allocation, customer balances, dashboard money tiles, demo sales |
+| Files created | Migrations `2026_11_01_200957`…`201001` (sales, sale_lines, payments, payment_allocations, counters); `app/Models/{Sale,SaleLine,Payment,PaymentAllocation}.php`; `app/Enums/{SaleStatus,PaymentMethod}.php`; `app/Services/{SaleService,PaymentService,ReceiptNumberService}.php`; `app/Exceptions/{Sales/SaleException,Payments/PaymentException}.php`; `app/Policies/{SalePolicy,PaymentPolicy}.php`; `app/Livewire/Sales/{Create,Index,Show}.php`, `app/Livewire/Payments/Index.php` + views; `resources/views/components/sale-status.blade.php`; `config/sales.php`; factories `SaleFactory`, `PaymentFactory`; tests `tests/Feature/Services/{SaleServiceTest,PaymentServiceTest}.php`, `tests/Feature/Sales/SalesScreensTest.php`, `tests/Feature/Payments/PaymentsScreenTest.php`, `tests/Unit/SaleStatusTest.php`; docs `SALES_MANAGEMENT.md`, `PAYMENT_SYSTEM.md`, `OFFLINE_READINESS.md`, `modules/sales.md`, `modules/payments.md` |
+| Files modified | `Customer.php` (relations, balance), `Money.php` (percent helpers), `Dashboard.php` + view, `Customers/Index.php` + view (balance, owing filter), `layouts/app.blade.php` (links, print styles), `routes/web.php`, `DatabaseSeeder.php`, `tests/Unit/MoneyTest.php`; docs listed in CHANGELOG |
+| Database changes | 5 new tables (see DATABASE_SCHEMA.md) |
+| Services | `SaleService`, `PaymentService`, `ReceiptNumberService` |
+| Livewire components | `Sales\Create`, `Sales\Index`, `Sales\Show`, `Payments\Index` |
+| Business rules | S1–S12, R1–R2, PY1–PY7 |
+| Tests executed | `php artisan test --compact`; `vendor/bin/pint`; `npm run build`; `php artisan migrate:fresh --seed` (seeded allocations checked) |
+| Test results | 178 passed, 690 assertions |
+| Known bugs | None known. Screens not reviewed visually in a browser in this session |
+| Decisions | ADR-0006 accepted; ADR-0007 partly in place; new ADR-0015 (discounts/credit), ADR-0016 (receipt counter), ADR-0017 (idempotency) |
+| Next phase | Phase 4 — Refunds and cancellations, then reports |

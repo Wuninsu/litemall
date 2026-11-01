@@ -5,6 +5,21 @@ All notable changes to this project are recorded here. Newest entries at the top
 ## [Unreleased]
 
 ### Added
+- Phase 3 — Sales and payments (2026-11-01):
+  - New sale page: product search, cart with quantities, optional customer (search by name or phone, shows what they owe), one discount per sale (GH₵ or %, cashiers up to 10%), payment at the counter (Cash, Mobile Money, Bank transfer, Card + reference), live totals, "Pay in full". Stock is reduced on save.
+  - Credit sales for named customers with no minimum deposit; walk-in sales must be paid in full.
+  - Receipt numbers `R-000001`… from a locked counter (no duplicates, no gaps from failed sales).
+  - Printable receipt page with lines, totals, discount, payments applied and balance.
+  - Sales list with period, status and search filters and totals.
+  - Payments page: list with filters and period total; "Receive payment" panel that applies money to the customer's oldest unpaid sales first and previews the split.
+  - Customer balances: Balance column and "Owing money" filter on the customers list.
+  - Dashboard: sales today, received today, owed by customers, low stock, recent sales, quick actions.
+  - Tables `sales`, `sale_lines`, `payments`, `payment_allocations`, `counters`; `SaleService`, `PaymentService`, `ReceiptNumberService`; `SaleStatus`, `PaymentMethod` enums; `config/sales.php`.
+  - Idempotency keys on sales and payments (duplicate-submit protection, offline-ready).
+  - `Money::parsePercent()` and `Money::percentOf()` (half-up rounding).
+  - Demo seed: 4 sales and a later payment.
+  - 39 new tests (178 total).
+  - Docs: `SALES_MANAGEMENT.md`, `PAYMENT_SYSTEM.md`, `OFFLINE_READINESS.md`, `modules/sales.md`, `modules/payments.md`; `FINANCIAL_LOGIC.md` rewritten with worked GH₵ examples; ADR-0006 accepted; ADR-0015–0017.
 - Phase 2 — Customers and products (2026-11-01):
   - `customers` and `products` tables (UUID keys, `created_by` → users, prices as integer pesewas).
   - Customers screen: search by name, email or phone in any format; status filter; one panel to add/edit; admins can deactivate/reactivate. Cashiers and admins can add and edit.

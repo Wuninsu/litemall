@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 
 #[Fillable(['name', 'phone', 'email', 'address', 'notes', 'is_active', 'created_by'])]
 class Customer extends Model
@@ -35,6 +37,48 @@ class Customer extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * @return HasMany<Sale, $this>
+     */
+    public function sales(): HasMany
+    {
+        return $this->hasMany(Sale::class);
+    }
+
+    /**
+     * @return HasMany<Payment, $this>
+     */
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
+    }
+
+    /**
+     * What the customer still owes across all sales, in pesewas.
+     */
+    public function outstandingPesewas(): int
+    {
+        if (array_key_exists('balance_pesewas', $this->attributes)) {
+            return (int) $this->attributes['balance_pesewas'];
+        }
+
+        return (int) $this->sales()->sum(DB::raw('total_pesewas - paid_pesewas'));
+    }
+
+    /**
+     * Adds a `balance_pesewas` column (sum of unpaid amounts) to each customer row.
+     *
+     * @param  Builder<Customer>  $query
+     */
+    public function scopeWithBalance(Builder $query): void
+    {
+        $query->addSelect([
+            'balance_pesewas' => Sale::query()
+                ->selectRaw('coalesce(sum(total_pesewas - paid_pesewas), 0)')
+                ->whereColumn('sales.customer_id', 'customers.id'),
+        ]);
     }
 
     /**

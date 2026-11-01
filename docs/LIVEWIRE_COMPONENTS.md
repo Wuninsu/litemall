@@ -32,7 +32,7 @@ One full-page `Index` component per resource holds the list **and** a single mod
 
 | Layout | File | Description |
 |---|---|---|
-| `layouts::app` | `resources/views/layouts/app.blade.php` | Signed-in shell. Dark brand sidebar (flat `bg-brand`, no grid or glow; 256 px; slide-out with backdrop below `lg`, toggled by Alpine `sidebarOpen`) with sections Dashboard · Operations (Sales — Soon, Customers, Products, Payments — Soon) · Insights (Reports, Soon) · Admin (Users, only if `can('viewAny', User)`); translucent user card with initials, role and sign-out button (POST `/logout`). Sticky top bar shows the page title and the mobile menu button. Shows `session('status')` flash. |
+| `layouts::app` | `resources/views/layouts/app.blade.php` | Signed-in shell. Dark brand sidebar (flat `bg-brand`, no grid or glow; 256 px; slide-out with backdrop below `lg`, toggled by Alpine `sidebarOpen`) with sections Dashboard · Operations (Sales, Customers, Products, Payments) · Insights (Reports, Soon) · Admin (Users, only if `can('viewAny', User)`); translucent user card with initials, role and sign-out button (POST `/logout`). Sticky top bar shows the page title and the mobile menu button. Shows `session('status')` flash. |
 | `layouts::guest` | `resources/views/layouts/guest.blade.php` | Full-screen teal brand background (grid texture, two soft glows) with the logo top-left, the form centred in a frosted translucent card (`bg-white/[.07]`, `backdrop-blur-xl`), and feature lines plus the staff-only note at the bottom. Auth views use `x-input tone="dark"` and `x-button variant="bright"`. Shows `session('status')` flash. |
 
 Both load Manrope through `@fonts` (self-hosted by the Vite fonts plugin, see `vite.config.js`) and assets through `@vite`.
@@ -44,6 +44,7 @@ Both load Manrope through `@fonts` (self-hosted by the Vite fonts plugin, see `v
 | `<x-icon name="…">` | `name` (home, cart, people, box, wallet, chart, shield, search, plus, edit, x, logout, menu, check, receipt, clock, eye, arrow-left) | Inline stroke icons; pass a `size-*` class to resize (default `size-5` only when none is given) |
 | `<x-input>` | `label`, `id`, `type`, `hint`, `error` (defaults to the `wire:model` name), `tone` (`light` default, `dark` for translucent inputs on the brand background), `prefix` (fixed text inside the field, e.g. `GH₵`) | Labelled input with error/hint text and `aria-invalid` |
 | `<x-textarea>` | `label`, `id`, `rows` (3), `hint`, `error` | Multi-line version of `<x-input>` (light tone only) |
+| `<x-sale-status :status>` | `status` (`SaleStatus`) | Pill: Paid (green), Part-paid (amber), Unpaid (red) |
 | `<x-stock-badge :product>` | `product` | Pill with quantity and "In stock" (green), "Low stock" (amber, 1–5) or "Out of stock" (red) from `Product::stockLevel()` |
 | `<x-button>` | `variant` (primary, secondary, ghost, danger, subtle, bright — for dark backgrounds), `size` (sm, md, lg, icon), `type`, `href` (renders a link), `navigate` (default true for links), `icon`, `icon-right`, `block`, `target`, `loading-text`, `loading` (false disables the loader) | One button for the whole app. **Loader:** shows a spinner and disables itself while its Livewire action runs; the target defaults to the `wire:click` expression (arguments included), or to any request for `type="submit"`; pass `target` for `wire:submit` forms. With `loading-text` the label is swapped; a leading `icon` is replaced by the spinner. Links never show the loader. Usage examples are in the component header comment |
 | `<x-modal wire:model="prop">` | `title`, `subtitle`, `maxWidth`, `position` (`center` default, or `right`) | Dialog entangled with a boolean Livewire property; Escape/backdrop close. `center`: centred dialog, bottom sheet on phones. `right`: full-height (`h-dvh`) panel sliding in from the right; give the slot a flex-column form with a scrollable body and pinned footer (see users view) |
@@ -68,8 +69,33 @@ Both load Manrope through `@fonts` (self-hosted by the Vite fonts plugin, see `v
 
 ### Dashboard — `/dashboard` (`dashboard`)
 - **Class / view:** `app/Livewire/Dashboard.php` · `…/dashboard.blade.php`
-- **Shows:** brand banner (`bg-brand`) with date, time-based greeting and tagline; for everyone, `shopStats` (computed: active customers, active products — each card links to its list); for admins, `teamStats` (computed: active staff, active admins, active cashiers, inactive accounts — `null` for non-admins); a "Coming next" list (Sales, Payments); the user's account details. No sales figures until those modules exist.
+- **Shows:** brand banner with date, greeting, tagline and "New sale" / "Receive payment" (`/payments?receive=1`) buttons; four linked tiles from `moneyStats` and `shopStats` (sales today with count, received today, owed by customers with number of customers owing → customers `?status=owing`, low or out of stock → products `?stock=low`); `recentSales` (last 6 with status); active customers and products; for admins, `teamStats`; the user's account.
+- **Computed:** `moneyStats` (`salesToday`, `salesCountToday`, `receivedToday`, `outstanding`, `owingCustomers` — pesewas/counts), `shopStats` (`customers`, `products`, `lowStock`), `recentSales`, `teamStats` (null for non-admins).
 - **Authorisation:** `auth`, `active` middleware; team stats gated by `can('viewAny', User)`.
+
+### Sales\Create — `/sales/new` (`sales.create`)
+- **Class / view:** `app/Livewire/Sales/Create.php` · `…/sales/create.blade.php` (full page, two columns; totals panel sticky on wide screens)
+- **Properties:** `idempotencyKey` (`#[Locked]`, new UUID per page load), `productSearch`, `cart` (product id → quantity), `customerSearch`, `customerId` (`#[Locked]`; set only via `selectCustomer`; `?customer=<id>` preselects), `discountType` (`amount`/`percent`), `discountValue`, `discountReason`, `paymentAmount`, `paymentMethod` (default cash), `paymentReference` (shown for non-cash methods), `notes`.
+- **Computed:** `cartProducts`, `productResults` (active products, 8; out-of-stock disabled), `customer`, `customerResults` (active, by name or phone, with balance), `summary` (subtotal, discount via `SaleService::discountFor`, total, paid, balance, discount error — preview only).
+- **Actions:** `addProduct($id)`, `removeLine($id)`, `selectCustomer($id)`, `clearCustomer()`, `payInFull()`, `complete(SaleService)` → validate → `SaleService::create()`; `SaleException` shown under its `field` (`lines`, `customer`, `discount`, `payment`); success flashes "Sale R-… saved." and redirects to the receipt.
+- **Authorisation:** route `can:create,Sale`; `authorize()` in `mount()` and `complete()`.
+
+### Sales\Index — `/sales` (`sales.index`)
+- **Properties:** `search` (receipt number or customer name), `status` (`SaleStatus` value or `''`), `period` (`today` default, `7days`, `30days`, `''` = all) — all `#[Url]`; 20 per page.
+- **Shows:** tiles (count, amount sold, still owed for the filtered sales); table with receipt (link), items and seller, date, customer or "Walk-in", total, paid, balance, `<x-sale-status>`.
+
+### Sales\Show — `/sales/{sale}` (`sales.show`)
+- **Properties:** `sale` (`#[Locked]`, UUID route binding). Title "Receipt R-…".
+- **Shows:** printable receipt (`print:` variants hide sidebar, top bar and buttons): header, customer and phone, served by, lines with snapshot names/prices, subtotal, discount and reason, total, paid, balance, payments applied (date, method, reference, receiver, amount), notes. Buttons: All sales, Receive payment (when a customer owes on it), Print receipt (`window.print()`), New sale.
+
+### Payments\Index — `/payments` (`payments.index`)
+- **Properties:** list filters `search`, `period` (today default), `method` — `#[Url]`; panel state `showModal`, `notice`, `idempotencyKey` (`#[Locked]`, new per opening), `customerId` (`#[Locked]`), `customerSearch`, `amount`, `paymentMethod`, `reference`, `notes`. `?customer=<id>` opens the panel with the customer; `?receive=1` opens it empty.
+- **Computed:** `customer` (with balance), `customerResults` (only customers with unpaid sales), `allocationPreview` (`PaymentService::previewAllocation`).
+- **Actions:** `openPanel()`, `selectCustomer($id)`, `clearCustomer()`, `payFullBalance()`, `save(PaymentService)` → `receive()`; `PaymentException` shown under `amount`; notice "GH₵ … received from …".
+- **Shows:** period total; table of payments with receiver, customer, method + reference, receipt chips for each allocation (linking to the receipts), amount.
+
+### Customers\Index additions (Phase 3)
+- `withBalance()` on the query; **Balance** column (amber link to `/payments?customer=<id>` when owing); status filter option **Owing money** (`status=owing`: customers with any unpaid sale).
 
 ### Users\Index — `/users` (`users.index`)
 - **Class / view:** `app/Livewire/Users/Index.php` · `…/users/index.blade.php`

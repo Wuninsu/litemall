@@ -44,8 +44,8 @@ Details:
 
 | Role | Value | Can |
 |---|---|---|
-| Administrator | `admin` | Everything: users, customers (incl. deactivation), products and prices |
-| Cashier | `cashier` | Dashboard; add and edit customers; view products and prices |
+| Administrator | `admin` | Everything: users, customers (incl. deactivation), products, prices, stock; sales with any discount; payments |
+| Cashier | `cashier` | Dashboard; add and edit customers; view products, prices and stock; record sales (discount up to 10%); receive payments |
 
 Planned split for later phases (ADR-0010): admins manage users, products, prices, promotions and approve refunds/cancellations; cashiers record customers, sales and payments.
 
@@ -76,6 +76,20 @@ The role picker in the users panel shows each role's label and one-line `UserRol
 | `viewAny` | any signed-in (active) user |
 | `create`, `update`, `changeStatus` | user is admin |
 
+**`SalePolicy`**
+
+| Ability | Rule |
+|---|---|
+| `viewAny`, `view`, `create` | any signed-in (active) user |
+
+Discounts above the cashier limit are refused by `SaleService::discountFor()` for non-admins (rule S7) — a business rule, not a policy.
+
+**`PaymentPolicy`**
+
+| Ability | Rule |
+|---|---|
+| `viewAny`, `create` | any signed-in (active) user |
+
 - Enforced at three levels: route middleware `can:viewAny,<Model>` on `/users`, `/customers` and `/products`; `$this->authorize()` in each Livewire `mount()` and action; views hide controls the user can't use (`@can`), e.g. the Users link, product edit buttons and customer deactivation.
 - Business invariants that are not about "who" (last active admin, own role) live in `UserService`, not policies.
 
@@ -87,5 +101,8 @@ The role picker in the users panel shows each role's label and one-line `UserRol
 | `/`, `/dashboard`, `POST /logout` | `auth`, `active` |
 | `/users` (list; create/edit happen in a panel on this page) | `auth`, `active`, `can:viewAny,User` |
 | `/customers` | `auth`, `active`, `can:viewAny,Customer` |
-| `/products` | `auth`, `active`, `can:viewAny,Product` |
+| `/products`, `/products/{product}` | `auth`, `active`, `can:viewAny,Product` |
+| `/sales`, `/sales/{sale}` | `auth`, `active`, `can:viewAny,Sale` |
+| `/sales/new` | `auth`, `active`, `can:create,Sale` |
+| `/payments` | `auth`, `active`, `can:viewAny,Payment` |
 | `/up` | public health check |

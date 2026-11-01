@@ -50,14 +50,14 @@ Never silently change an Accepted decision — add a new ADR that supersedes it.
 - **Disadvantages:** Conversion required at input/output boundaries.
 
 ## ADR-0006 — Oldest-first payment allocation and historical price snapshots
-- **Date:** 2026-11-01 · **Status:** Proposed
+- **Date:** 2026-11-01 · **Status:** Accepted (owner chose oldest-first on 2026-11-01) — implemented in Phase 3 (`PaymentService`, `sale_lines` snapshots)
 - **Problem:** A customer payment not tied to one sale must be applied predictably; later price or promotion changes must not alter past sales.
 - **Proposed:** Unallocated payments settle the customer's oldest outstanding sale first (FIFO). Each sale line stores the unit price, discount and promotion applied at the time of sale rather than referencing current product/promotion values.
 - **Advantages:** Deterministic, explainable balances; historical accuracy.
 - **Disadvantages:** Duplicated price data; customers cannot direct payments unless an explicit-allocation option is added.
 
 ## ADR-0007 — Design for future offline support
-- **Date:** 2026-11-01 · **Status:** Proposed
+- **Date:** 2026-11-01 · **Status:** Proposed — partly in place (UUIDs, idempotency keys); see [OFFLINE_READINESS.md](OFFLINE_READINESS.md)
 - **Problem:** The business may need to operate during connectivity loss.
 - **Proposed:** Not built now, but keep it possible: UUIDs (ADR-0002), device identifiers and idempotency keys on financial writes, services usable by a sync endpoint, no logic that depends on server-generated sequential ids except receipt numbers assigned at sync time.
 - **Disadvantages:** Extra columns and complexity before the feature exists.
@@ -127,3 +127,29 @@ Never silently change an Accepted decision — add a new ADR that supersedes it.
 - **Advantages:** Small and immediately useful; no extra packages.
 - **Disadvantages:** No audit trail of who changed stock or why; sales will not reduce stock until Phase 3 adds that; full-size photos are served as uploaded.
 - **Implications:** When sales are built, decrement stock inside the sale transaction with a row lock, and consider introducing a `stock_movements` ledger (new ADR) so stock changes are auditable. Deployments must run `php artisan storage:link`.
+
+## ADR-0015 — Sale-level discounts with a cashier limit; credit without deposit
+- **Date:** 2026-11-01 · **Status:** Accepted (owner choices)
+- **Problem:** How discounts and credit sales work.
+- **Alternatives:** Discounts per sale or per line; fixed or %; who may give them. Credit: allowed with no minimum, with a minimum deposit, or cash only.
+- **Chosen:** One discount per sale, entered as GH₵ or % (stored as the resulting pesewas plus an optional reason). Cashiers may give up to `sales.cashier_max_discount_percent` (default 10%) of the subtotal; administrators up to 100%. "Admin-approved" is implemented as *an administrator enters the sale* — there is no request/approve workflow yet. Credit is allowed with no deposit, but only for a named customer; walk-ins pay in full.
+- **Advantages:** Simple receipts; limit is configurable without code changes.
+- **Disadvantages:** A cashier needing a larger discount must hand over to an admin; no per-line discounts.
+- **Implications:** An approval workflow (admin approves a cashier's pending sale) would need a sale state before completion and a new ADR.
+
+## ADR-0016 — Receipt numbers from a locked counter table
+- **Date:** 2026-11-01 · **Status:** Accepted (owner chose the R-000184 format)
+- **Problem:** Receipts need short, sequential, never-reused numbers, safe under concurrent sales.
+- **Alternatives:** `max(receipt_number) + 1` (race-prone); database sequences/auto-increment (not portable, gaps on rollback); a `counters` table row incremented under `lockForUpdate` inside the sale transaction.
+- **Chosen:** `counters` table + `ReceiptNumberService`; format `config('sales.receipt_prefix')` + zero-padded `receipt_digits` (`R-000001`).
+- **Advantages:** No duplicates; no gaps from failed sales (the increment rolls back with the sale); portable across SQLite/MySQL/PostgreSQL.
+- **Disadvantages:** All sales serialise briefly on one row (fine at shop scale).
+- **Implications:** Offline sales will need provisional numbers replaced at sync (OFFLINE_READINESS.md).
+
+## ADR-0017 — Idempotency keys on sales and payments
+- **Date:** 2026-11-01 · **Status:** Accepted
+- **Problem:** Double clicks, browser retries and (later) offline sync replays must not record a sale or payment twice.
+- **Alternatives:** Rely on disabled buttons only; unique idempotency key per operation.
+- **Chosen:** Nullable unique `idempotency_key` (UUID) on `sales` and `payments`. The screens generate one per form; the services return the existing record when the key was already used.
+- **Advantages:** Safe retries; ready for sync.
+- **Disadvantages:** One more column; keys must be regenerated for each new operation (done when the page or panel opens).

@@ -1,55 +1,112 @@
 # Financial Logic
 
-_As of 2026-11-01 (Phase 2). Only money **representation** and **product prices** exist. Sale totals, discounts, promotions, payments, allocation, balances, refunds, reversals and cancellations are not implemented yet; add each section here when it is built._
+_As of 2026-11-01 (Phase 3). Implemented: money representation, prices, stock value, sale totals, discounts, payments at the counter, later payments with oldest-first allocation, balances. Not yet: refunds, reversals, cancellations, promotions._
 
 ## Money representation (ADR-0005)
 
 | Rule | Where |
 |---|---|
-| Every amount is stored as an **integer number of pesewas** (1 GHS = 100 pesewas). Column names end in `_pesewas`. | Migrations (`products.price_pesewas`, `unsignedBigInteger`) |
-| Floats are never used for money: parsing is string-based, arithmetic is integer. | `App\Support\Money` |
-| Conversion to/from cedis happens only at the edges: form input (`Money::parse`) and display (`Money::format`). | `ProductForm::payload()`, `Product::formattedPrice()` |
+| Every amount is stored as an **integer number of pesewas** (1 GHS = 100 pesewas) in `*_pesewas` columns. | All money columns |
+| Floats are never used: parsing is string-based, arithmetic is integer, percentages are basis points (1% = 100). | `App\Support\Money` |
+| Conversion to/from cedis happens only at the edges: form input and display. | Form objects / components; `money()`, `formatted*()` model helpers |
 
 ### `App\Support\Money`
 
-| Method | Input → output | Notes |
+| Method | Example | Notes |
 |---|---|---|
-| `parse(string)` | `"1,200.50"` → `120050` | Accepts thousands commas, up to 2 decimals, an optional `GH₵`/`GHS` prefix, surrounding spaces. Rejects negatives, 3+ decimals, letters, scientific notation, amounts above GH₵ 9,999,999,999.99 (`MAX_PESEWAS`). Throws `InvalidArgumentException`. |
-| `isValid(string)` | `"12.345"` → `false` | Same rules as `parse` without throwing. |
-| `format(int, bool $withSymbol = true)` | `120050` → `"GH₵ 1,200.50"` | Negative values render as `-GH₵ 12.30` (for future refunds/reversals). |
-| `toInput(int)` | `120050` → `"1200.50"` | Pre-fills edit forms; round-trips through `parse`. |
+| `parse(string)` | `"1,200.50"` → `120050` | Commas, ≤ 2 decimals, optional `GH₵`/`GHS`, max GH₵ 9,999,999,999.99. Throws `InvalidArgumentException`. |
+| `isValid(string)` | `"12.345"` → `false` | |
+| `format(int, bool $withSymbol = true)` | `120050` → `"GH₵ 1,200.50"` | Negative → `-GH₵ 12.30` |
+| `toInput(int)` | `120050` → `"1200.50"` | Pre-fills inputs |
+| `parsePercent(string)` | `"7.5"` → `750` | 0–100, ≤ 2 decimals, optional `%` |
+| `percentOf(int $pesewas, int $basisPoints)` | `percentOf(89999, 750)` → `6750` | `intdiv(pesewas × bp + 5000, 10000)`: **round half up** to the pesewa |
 
-### Worked examples (GH₵)
+Typing examples: `3450` → 345000 → GH₵ 3,450.00 · `899.99` → 89999 · `0.10` + `0.20` = 30 pesewas exactly · `12.345` rejected.
 
-| Typed by staff | Stored (`price_pesewas`) | Shown |
-|---|---|---|
-| `3450` | 345000 | GH₵ 3,450.00 |
-| `1,899.50` | 189950 | GH₵ 1,899.50 |
-| `899.99` | 89999 | GH₵ 899.99 |
-| `0.05` | 5 | GH₵ 0.05 |
-| `12.5` | 1250 | GH₵ 12.50 |
-| `0.10` + `0.20` | 10 + 20 = **30** | GH₵ 0.30 (exact; with floats 0.1 + 0.2 = 0.30000000000000004) |
-| `12.345` | rejected | "Enter the price in cedis, e.g. 1200 or 1,200.50." |
+## Product prices and stock value
 
-## Product prices
+- One current selling price per product (`products.price_pesewas` > 0), set by admins (ADR-0012). Price changes affect **future sales only** because each sale line stores its own price (below).
+- Stock value = `stock_quantity × price_pesewas` (`Product::stockValuePesewas()`), at selling price — not a cost valuation. Example: 12 × GH₵ 3,450.00 = GH₵ 41,400.00.
 
-- A product has one **current selling price** (`products.price_pesewas`), which must be greater than GH₵ 0.00 (`ProductForm` rule and `ProductService` guard → `ProductException::invalidPrice()`).
-- Only administrators set or change prices (ADR-0012).
-- Changing a price affects **future sales only**. Sales are not built yet; when they are, each sale line must copy the unit price at the moment of sale (ADR-0006, Proposed) so later price changes never alter past sales, receipts or balances. The product panel already tells admins this.
-- There is no price-change history table yet; `products.updated_at` records only when the product was last changed.
+## Sale totals (`SaleService::create`)
 
-## Stock value
+```
+line_total  = unit_price_pesewas × quantity          (unit price copied from the product at sale time)
+subtotal    = Σ line_total
+discount    = amount in pesewas, or percentOf(subtotal, basis points)
+total       = subtotal − discount                     (0 ≤ discount ≤ subtotal)
+paid        = Σ payment allocations to this sale
+balance     = total − paid                            (never negative)
+status      = Paid if paid ≥ total · Part-paid if 0 < paid < total · Unpaid if paid = 0
+```
 
-`Product::stockValuePesewas()` = `stock_quantity × price_pesewas` (integer multiplication, no rounding). Shown on the product details page.
+### Worked example — credit sale with a percentage discount
 
-| Product | Quantity | Price | Stock value |
+| | Calculation | Pesewas | GH₵ |
 |---|---|---|---|
-| Samsung 43-inch Smart TV | 12 | GH₵ 3,450.00 (345000) | 4,140,000 → **GH₵ 41,400.00** |
-| Midea Microwave 20L | 15 | GH₵ 899.99 (89999) | 1,349,985 → **GH₵ 13,499.85** |
-| Nasco 32-inch LED TV | 0 | GH₵ 1,650.00 | 0 → **GH₵ 0.00** |
+| Samsung 43" TV × 2 | 345000 × 2 | 690000 | 6,900.00 |
+| Subtotal | | 690000 | 6,900.00 |
+| Discount 10% (admin) | percentOf(690000, 1000) | 69000 | −690.00 |
+| **Total** | 690000 − 69000 | 621000 | **6,210.00** |
+| Paid now (Mobile Money) | | 200000 | 2,000.00 |
+| **Balance on credit** | 621000 − 200000 | 421000 | **4,210.00** → status Part-paid |
 
-It is valued at the **selling** price; there is no cost price yet, so it is not an accounting (cost) valuation.
+### Rounding example
+
+Microwave GH₵ 899.99, discount 7.5% → 899.99 × 0.075 = 67.49925 → `percentOf(89999, 750)` = (89999 × 750 + 5000) div 10000 = 6750 → **GH₵ 67.50**; total GH₵ 832.49.
+
+### Discount rules
+
+- Never more than the subtotal (`SaleException::discountTooLarge`).
+- Cashiers: at most `config('sales.cashier_max_discount_percent')` % of the subtotal (default 10%), compared in pesewas: with a GH₵ 1,000.00 subtotal a cashier may give GH₵ 100.00 but not GH₵ 100.01 (`discountNeedsAdmin`). Admins may give up to 100% (a GH₵ 0.00 sale is recorded as Paid).
+- The live preview on the New sale screen calls the same `discountFor()` method, so the screen and the saved sale agree.
+
+## Payments at the counter
+
+`0 ≤ payment ≤ total`. If `payment < total` a customer is required (walk-ins pay in full). A positive payment needs a method. The payment is allocated entirely to the new sale.
+
+## Payment allocation (oldest first)
+
+`PaymentService::receive()` applies a payment to the customer's unpaid sales ordered by `sold_at`, then receipt number, filling each before moving on. Overpayment is refused.
+
+### Worked example
+
+Ama owes on three sales (total owed GH₵ 3,500.00):
+
+| Sale | Sold | Total | Already paid | Owed |
+|---|---|---|---|---|
+| R-000001 | 3 Oct | 1,000.00 | 0.00 | 1,000.00 |
+| R-000002 | 10 Oct | 800.00 | 300.00 | 500.00 |
+| R-000003 | 20 Oct | 2,000.00 | 0.00 | 2,000.00 |
+
+She pays **GH₵ 1,800.00**:
+
+| Sale | Applied | Now owed | Status |
+|---|---|---|---|
+| R-000001 | 1,000.00 | 0.00 | Paid |
+| R-000002 | 500.00 | 0.00 | Paid |
+| R-000003 | 300.00 | 1,700.00 | Part-paid |
+
+Remaining balance GH₵ 1,700.00. Paying GH₵ 1,700.01 afterwards is refused ("The customer only owes GH₵ 1,700.00"). This exact case is `PaymentServiceTest::test_payments_settle_the_oldest_sale_first`.
+
+## Outstanding balances
+
+- Per sale: `Sale::balancePesewas()`.
+- Per customer: `Customer::outstandingPesewas()` = Σ (total − paid) over their sales; lists use `Customer::scopeWithBalance()` (one subquery per row) to avoid N+1 queries.
+- Dashboard "Owed by customers" = Σ (total − paid) over all sales.
+
+## Consistency under concurrent use
+
+| Risk | Protection |
+|---|---|
+| Two sales selling the last unit | `SaleService` locks the product rows (`lockForUpdate`) before checking stock, inside the sale transaction |
+| Two payments settling the same balance | `PaymentService` locks the customer's unpaid sale rows before computing what is owed |
+| Duplicate receipt numbers | `ReceiptNumberService` increments the `counters` row under a lock in the same transaction; a failed sale rolls the number back |
+| Double-click / resubmit | Idempotency keys on sales and payments (unique columns); the second request returns the first record |
+| Partial writes | Every sale and payment is one `DB::transaction()`; any exception rolls back stock, receipts, payments and allocations |
+
+Note: SQLite (used locally and in tests) serialises writers instead of honouring `lockForUpdate`, which gives the same guarantee; on MySQL/PostgreSQL the row locks apply.
 
 ## Not yet implemented
 
-Sale totals · discounts · promotional prices · initial and subsequent payments · payment allocation (oldest-first proposed, ADR-0006) · outstanding balances · refunds · reversals · cancelled sales · concurrency rules for payments.
+Refunds · reversals · cancelled sales · promotions/promotional prices · customer credit balances (overpayment) · cost price and margins · tax.

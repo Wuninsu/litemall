@@ -27,6 +27,11 @@ Documentation describes **implemented** behaviour. Anything planned is explicitl
 | [FINANCIAL_LOGIC.md](FINANCIAL_LOGIC.md) | Money representation (pesewas), price rules, GH₵ examples |
 | [modules/customers.md](modules/customers.md) | Customers module |
 | [modules/products.md](modules/products.md) | Products module |
+| [SALES_MANAGEMENT.md](SALES_MANAGEMENT.md) | Sales flow, rules, screens |
+| [PAYMENT_SYSTEM.md](PAYMENT_SYSTEM.md) | Payments, oldest-first allocation, concurrency |
+| [OFFLINE_READINESS.md](OFFLINE_READINESS.md) | What is offline-ready now vs planned |
+| [modules/sales.md](modules/sales.md) | Sales module |
+| [modules/payments.md](modules/payments.md) | Payments module |
 | [SECURITY.md](SECURITY.md) | Security controls, assumptions, gaps |
 | [TESTING_GUIDE.md](TESTING_GUIDE.md) | How to run and write tests |
 | [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) | Requirements and deployment procedure |
@@ -41,11 +46,8 @@ These are required by `prompt.md` but intentionally do not exist yet, because th
 
 | Document | Create when… |
 |---|---|
-| SALES_MANAGEMENT.md, modules/sales.md | sales are implemented |
-| PAYMENT_SYSTEM.md, modules/payments.md | payments are implemented |
 | PROMOTIONS_SYSTEM.md, modules/promotions.md | promotions are implemented |
 | REFUNDS_AND_CANCELLATIONS.md | refunds or cancellations are implemented |
 | DASHBOARD_AND_REPORTING.md, modules/dashboard.md, modules/reports.md | dashboard or reports are implemented |
 | BULK_IMPORTS.md | any import is implemented |
-| OFFLINE_READINESS.md | any offline-related code (device ids, idempotency keys, sync) is added |
 | API_DOCUMENTATION.md | the first API route is added |

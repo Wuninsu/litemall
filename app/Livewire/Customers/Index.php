@@ -138,6 +138,8 @@ class Index extends Component
             })
             ->when($this->status === 'active', fn ($query) => $query->where('is_active', true))
             ->when($this->status === 'inactive', fn ($query) => $query->where('is_active', false))
+            ->when($this->status === 'owing', fn ($query) => $query->whereHas('sales', fn ($sales) => $sales->whereColumn('paid_pesewas', '<', 'total_pesewas')))
+            ->withBalance()
             ->orderBy('name')
             ->paginate(15);
 

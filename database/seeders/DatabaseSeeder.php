@@ -2,9 +2,12 @@
 
 namespace Database\Seeders;
 
+use App\Enums\PaymentMethod;
 use App\Models\Customer;
 use App\Models\Product;
 use App\Models\User;
+use App\Services\PaymentService;
+use App\Services\SaleService;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -57,5 +60,49 @@ class DatabaseSeeder extends Seeder
                 'created_by' => $admin->id,
             ]);
         }
+
+        $this->seedSales($cashier);
+    }
+
+    /**
+     * A few sales through the real services so totals, stock, receipts and allocations are consistent.
+     */
+    private function seedSales(User $cashier): void
+    {
+        $sales = app(SaleService::class);
+        $payments = app(PaymentService::class);
+        $customers = Customer::query()->active()->orderBy('name')->take(3)->get();
+        $product = fn (string $sku): string => Product::query()->where('sku', $sku)->value('id');
+
+        $sales->create([
+            'lines' => [['product_id' => $product('FN-BIN-16'), 'quantity' => 2]],
+            'payment_pesewas' => 900_00,
+            'payment_method' => PaymentMethod::Cash,
+        ], $cashier);
+
+        $sales->create([
+            'customer_id' => $customers[0]->id,
+            'lines' => [['product_id' => $product('TV-SAM-43'), 'quantity' => 1], ['product_id' => $product('KT-MID-20'), 'quantity' => 1]],
+            'payment_pesewas' => 1_500_00,
+            'payment_method' => PaymentMethod::MobileMoney,
+            'payment_reference' => 'MOMO-10293847',
+        ], $cashier);
+
+        $sales->create([
+            'customer_id' => $customers[0]->id,
+            'lines' => [['product_id' => $product('PH-TEC-S20'), 'quantity' => 1]],
+        ], $cashier);
+
+        $sales->create([
+            'customer_id' => $customers[1]->id,
+            'lines' => [['product_id' => $product('KT-GAS-4B'), 'quantity' => 1]],
+            'discount_type' => 'percent',
+            'discount_value' => 500,
+            'discount_reason' => 'Returning customer',
+            'payment_pesewas' => 1_000_00,
+            'payment_method' => PaymentMethod::Cash,
+        ], $cashier);
+
+        $payments->receive($customers[0], 2_000_00, PaymentMethod::Cash, $cashier);
     }
 }

@@ -17,7 +17,7 @@ composer test                                               # config:clear then 
 vendor/bin/phpunit                                          # direct runner, same arguments
 ```
 
-Current result (2026-11-01): **139 tests, 498 assertions, all passing** (also verified with no `public/build` present).
+Current result (2026-11-01): **178 tests, 690 assertions, all passing** (also verified with no `public/build` present).
 
 ## Test map
 
@@ -36,6 +36,11 @@ Current result (2026-11-01): **139 tests, 498 assertions, all passing** (also ve
 | `tests/Feature/Customers/CustomerManagementTest.php` | Guest redirect, both roles see list, search by name/email/phone formats, status filter, add/edit via panel, validation, duplicate number, cashier cannot deactivate, admin (de)activates, locked `form.customer` |
 | `tests/Feature/Products/ProductManagementTest.php` | Cashier read-only list and 403 on actions, filters, admin adds with cedi price, price validation, duplicate SKU, edit pre-fills and saves price, (de)activation, sidebar and dashboard links |
 | `tests/Feature/Products/ProductImageAndStockTest.php` | Photo upload, rejected files (PDF, SVG, >2 MB), stock validation, photo replace/remove deletes old file, no orphaned file on failed save, stock levels and value, stock filter, details page for cashier (read-only) and admin (edit in place), list links, 404 |
+| `tests/Unit/SaleStatusTest.php` | Status from total vs paid; labels |
+| `tests/Feature/Services/SaleServiceTest.php` | Walk-in paid sale (snapshot, stock, payment, allocation); credit with part payment; no payment; walk-in must pay full; overpayment; method required; stock, inactive product/customer, empty and zero-quantity lines (with rollback); merged lines; amount and % discounts; half-up rounding; cashier limit vs admin; 100% discount; later price change does not alter sale; sequential receipts with no gap after a failed sale; idempotency |
+| `tests/Feature/Services/PaymentServiceTest.php` | Oldest-first across three sales (worked example); preview = saved split; exact settlement; zero/negative/over-balance refused; nothing owed; other customers untouched; idempotency |
+| `tests/Feature/Sales/SalesScreensTest.php` | Guest redirect; cashier rings up a walk-in sale end to end; credit needs a customer (phone search); cashier discount limit; out-of-stock product; receipt page content; sales list filters and totals |
+| `tests/Feature/Payments/PaymentsScreenTest.php` | Receive payment with preview via `?customer=`; only owing customers offered; validation and overpayment; full-balance button and `?receive=1`; customers balance column and owing filter; dashboard money figures |
 | `tests/Feature/Components/ButtonTest.php` | `x-button` rendering: plain button, loader wiring for `wire:click` (with escaped arguments), submit + `loading-text`, submit without target, loader off, link mode |
 | `tests/Feature/Console/CreateAdminUserTest.php` | Command with options, interactive prompts, invalid input |
 
@@ -51,6 +56,10 @@ Current result (2026-11-01): **139 tests, 498 assertions, all passing** (also ve
 
 Data: use factories and their states — `User::factory()->admin()`, `->cashier()`, `->inactive()`, `->unverified()` (password `password`); `Customer::factory()->inactive()`; `Product::factory()->inactive()`, `->priced(189950)` (pesewas). Unit tests in `tests/Unit` extend PHPUnit's `TestCase` directly (no Laravel boot) and use data providers.
 
-## Financial test scenarios (to implement with the features)
+## Financial test scenarios
 
-Each money feature must cover, in GHS/pesewas: exact payment, partial payment, overpayment handling, zero and negative amounts rejected, allocation across several outstanding sales oldest-first, refund after partial payment, cancellation after payment, rounding to the pesewa, and two concurrent payments against the same balance.
+Covered now (see the test map): exact payment, partial payment, overpayment refused, zero/negative amounts refused, oldest-first allocation across several sales, half-up rounding to the pesewa, cashier discount limit, duplicate submission.
+
+**Still to add** with Phase 4: refund after partial payment, cancellation after payment. Concurrent payments are protected by row locks but not exercised by a test (SQLite serialises writers); add one when a MySQL/PostgreSQL test database exists.
+
+Use `SaleFactory::amounts($total, $paid)` for raw balances and `SaleService` when a test needs real lines, stock changes and allocations.

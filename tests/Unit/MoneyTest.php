@@ -80,6 +80,34 @@ class MoneyTest extends TestCase
         $this->assertSame('3,450.00', Money::format(345000, withSymbol: false));
     }
 
+    public function test_it_parses_percentages_to_basis_points(): void
+    {
+        $this->assertSame(1000, Money::parsePercent('10'));
+        $this->assertSame(1250, Money::parsePercent('12.5'));
+        $this->assertSame(750, Money::parsePercent('7.50 %'));
+        $this->assertSame(10000, Money::parsePercent('100'));
+        $this->assertSame(0, Money::parsePercent('0'));
+
+        foreach (['', 'ten', '100.01', '-5', '1.234'] as $invalid) {
+            try {
+                Money::parsePercent($invalid);
+                $this->fail("\"{$invalid}\" should be rejected.");
+            } catch (InvalidArgumentException) {
+                $this->addToAssertionCount(1);
+            }
+        }
+    }
+
+    public function test_percent_of_rounds_half_up_to_the_pesewa(): void
+    {
+        $this->assertSame(12345, Money::percentOf(123450, 1000));   // 10% of GH₵ 1,234.50
+        $this->assertSame(13750, Money::percentOf(275000, 500));    // 5% of GH₵ 2,750.00
+        $this->assertSame(6750, Money::percentOf(89999, 750));      // 7.5% of 899.99 = 67.49925 → 67.50
+        $this->assertSame(1, Money::percentOf(10, 500));            // 0.5 pesewa rounds up
+        $this->assertSame(0, Money::percentOf(9, 500));             // 0.45 pesewa rounds down
+        $this->assertSame(89999, Money::percentOf(89999, 10000));   // 100%
+    }
+
     public function test_input_form_round_trips(): void
     {
         $this->assertSame('1200.50', Money::toInput(120050));

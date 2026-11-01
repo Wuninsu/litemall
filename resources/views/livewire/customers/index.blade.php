@@ -11,6 +11,7 @@
                 class="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-600 focus:border-teal-600 focus:ring-4 focus:ring-teal-600/15 focus:outline-none">
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
+            <option value="owing">Owing money</option>
             <option value="">All customers</option>
         </select>
 
@@ -36,6 +37,7 @@
                         <th class="px-5 py-3">Customer</th>
                         <th class="px-5 py-3">Phone</th>
                         <th class="px-5 py-3">Location</th>
+                        <th class="px-5 py-3 text-right">Balance</th>
                         <th class="px-5 py-3">Status</th>
                         <th class="px-5 py-3">Added</th>
                         <th class="px-5 py-3"><span class="sr-only">Actions</span></th>
@@ -52,6 +54,13 @@
                             </td>
                             <td class="px-5 py-3 whitespace-nowrap tabular-nums text-slate-700">{{ $customer->formattedPhone() }}</td>
                             <td class="px-5 py-3 text-slate-500">{{ $customer->address ?? '—' }}</td>
+                            <td class="px-5 py-3 text-right whitespace-nowrap tabular-nums">
+                                @if ($customer->outstandingPesewas() > 0)
+                                    <a href="{{ route('payments.index', ['customer' => $customer->id]) }}" wire:navigate class="font-semibold text-amber-700 hover:underline" title="Receive payment">{{ App\Support\Money::format($customer->outstandingPesewas()) }}</a>
+                                @else
+                                    <span class="text-slate-400">GH₵ 0.00</span>
+                                @endif
+                            </td>
                             <td class="px-5 py-3">
                                 @if ($customer->is_active)
                                     <span class="inline-flex items-center gap-1.5 font-semibold text-emerald-700"><span class="size-1.5 rounded-full bg-current"></span>Active</span>
@@ -66,7 +75,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="px-5 py-12 text-center text-slate-500">
+                            <td colspan="7" class="px-5 py-12 text-center text-slate-500">
                                 @if ($search !== '' || $status !== 'active')
                                     No customers match these filters.
                                 @else

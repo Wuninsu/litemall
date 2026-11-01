@@ -80,6 +80,38 @@ final class Money
     }
 
     /**
+     * "12.5" → 1250 basis points (1 % = 100). Accepts 0–100 with up to two decimals and an optional "%".
+     *
+     * @throws InvalidArgumentException
+     */
+    public static function parsePercent(string $percent): int
+    {
+        $normalised = rtrim(trim($percent), "% \t");
+
+        if (! preg_match('/^\d{1,3}(\.\d{1,2})?$/', $normalised)) {
+            throw new InvalidArgumentException("\"{$percent}\" is not a valid percentage.");
+        }
+
+        [$whole, $fraction] = array_pad(explode('.', $normalised, 2), 2, '');
+        $basisPoints = (int) ($whole.str_pad($fraction, 2, '0'));
+
+        if ($basisPoints > 10_000) {
+            throw new InvalidArgumentException("\"{$percent}\" is more than 100%.");
+        }
+
+        return $basisPoints;
+    }
+
+    /**
+     * Percentage of an amount, rounded half up to the nearest pesewa:
+     * percentOf(123450, 1000) = 10% of GH₵ 1,234.50 = 12345 (GH₵ 123.45).
+     */
+    public static function percentOf(int $pesewas, int $basisPoints): int
+    {
+        return intdiv($pesewas * $basisPoints + 5_000, 10_000);
+    }
+
+    /**
      * 120050 → "1200.50", the plain form used to pre-fill input fields.
      */
     public static function toInput(int $pesewas): string

@@ -31,3 +31,5 @@ Every **application** table — including `users` and all future business tables
 | users | yes | `App\Models\User` (`HasUuids`) |
 | customers | yes | `App\Models\Customer` (`HasUuids`); FK `created_by` via `foreignUuid` |
 | products | yes | `App\Models\Product` (`HasUuids`); FK `created_by` via `foreignUuid` |
+| sales, sale_lines, payments, payment_allocations | yes | `Sale`, `SaleLine`, `Payment`, `PaymentAllocation` (`HasUuids`); all FKs via `foreignUuid`; `idempotency_key` is also a UUID |
+| counters | no (string key `name`) | none — internal sequence table |

@@ -7,7 +7,8 @@ A staff-only web application where:
 - Administrators create and manage staff accounts (Administrator or Cashier) and can deactivate leavers.
 - Staff register and look up customers (one customer per Ghana phone number); administrators can deactivate them.
 - Everyone can browse products with photos, GH₵ prices and stock levels, and open a details page; administrators add products and set prices and stock.
-- The dashboard shows customer and product counts (and staff counts for admins). Sales and payments are not built yet.
+- Staff ring up sales (products, quantities, optional customer, one discount, payment now or on credit), print receipts, and receive later payments that settle the customer's oldest unpaid sales first. Stock goes down with each sale.
+- The dashboard shows today's sales and payments, what customers owe, low stock and recent sales.
 
 ## Intended purpose (Planned)
 
@@ -29,8 +30,8 @@ The requirements in `prompt.md` describe a sales and customer-credit management 
 
 | Role | Today | Planned |
 |---|---|---|
-| Administrator | Everything: users, customers (incl. deactivation), products, prices, stock, photos | Also promotions, approving refunds/cancellations |
-| Cashier | Dashboard; add/edit customers; view products, prices and stock | Sales, payments |
+| Administrator | Everything, incl. users, product prices/stock and larger discounts | Also promotions, refunds/cancellations |
+| Cashier | Dashboard; add/edit customers; view products; record sales (discount ≤ 10%); receive payments | — |
 
 See [AUTHENTICATION_AND_AUTHORIZATION.md](AUTHENTICATION_AND_AUTHORIZATION.md).
 
@@ -55,11 +56,11 @@ See [AUTHENTICATION_AND_AUTHORIZATION.md](AUTHENTICATION_AND_AUTHORIZATION.md).
 
 ## Current development status
 
-Phases 1–2 (foundations, UI, customers and products) complete — see [PROJECT_STATUS.md](PROJECT_STATUS.md).
+Phases 1–3 (foundations, UI, customers, products, sales and payments) complete — see [PROJECT_STATUS.md](PROJECT_STATUS.md).
 
 ## Known limitations
 
-- No sales, payments or receipts yet; stock is not reduced automatically.
+- Sales and payments cannot be corrected yet (no refunds/cancellations); no reports.
 - No audit log, no 2FA.
 - `composer audit` reports CVE-2026-45070 in `symfony/mime` (medium), unresolved.
 

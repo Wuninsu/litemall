@@ -22,13 +22,16 @@
 | `App\Exceptions\Customers\CustomerException` | `invalidPhone()` (not a Ghana number), `phoneTaken()` (unique index hit, e.g. a race between two saves) |
 | `App\Exceptions\Products\ProductException` | `invalidPrice()` (≤ 0), `invalidStock()` (< 0), `imageNotSaved()` (storage failure), `skuTaken()` (unique index hit); exposes `$field` (`price` / `stock` / `image` / `sku`) so screens can show the error under the right input |
 
+| `App\Exceptions\Sales\SaleException` | Sale rule violations; exposes `$field` (`lines`, `customer`, `discount`, `payment`) for the New sale screen. Messages listed under SaleService below |
+| `App\Exceptions\Payments\PaymentException` | `amountMustBePositive()`, `nothingOwed()`, `exceedsBalance(int $owed)` |
+
 ## Support helpers (`app/Support`)
 
 Stateless helpers used by services, forms and models. Not services: no database access, no container dependencies.
 
 | Class | Purpose | Tests |
 |---|---|---|
-| `App\Support\Money` | Cedi text ↔ integer pesewas (`parse`, `isValid`, `format`, `toInput`). See [FINANCIAL_LOGIC.md](FINANCIAL_LOGIC.md) | `tests/Unit/MoneyTest.php` |
+| `App\Support\Money` | Cedi text ↔ integer pesewas (`parse`, `isValid`, `format`, `toInput`); percentages (`parsePercent` → basis points, `percentOf` with half-up rounding). See [FINANCIAL_LOGIC.md](FINANCIAL_LOGIC.md) | `tests/Unit/MoneyTest.php` |
 | `App\Support\PhoneNumber` | Ghana phone numbers: `normalise` → `+233XXXXXXXXX` or null, `format` → `024 412 3456`, `searchFragment` for list search | `tests/Unit/PhoneNumberTest.php` |
 
 ---
@@ -108,6 +111,40 @@ File safety: a newly stored image is deleted again if the database save fails (e
 | `categories()` | — | `list<string>` distinct non-null categories, A→Z | — | select distinct |
 
 Normalisation: name squished, SKU trimmed + upper-cased (blank → `null`), category squished + first letter capitalised (blank → `null`), blank description → `null`.
+
+### SaleService
+- **File:** [app/Services/SaleService.php](../app/Services/SaleService.php)
+- **Responsibility:** record a complete sale atomically: lines with price snapshots, discount, totals, stock reduction, receipt number, payment taken at the counter. See [SALES_MANAGEMENT.md](SALES_MANAGEMENT.md).
+- **Dependencies:** `ReceiptNumberService` (constructor), models `Sale`, `SaleLine`, `Product`, `Customer`, `Payment`, `PaymentAllocation`, `App\Support\Money`, `config('sales.*')`.
+- **Used by:** `Sales\Create`, `DatabaseSeeder`.
+- **Related tests:** `tests/Feature/Services/SaleServiceTest.php`, `tests/Feature/Sales/SalesScreensTest.php`
+
+| Method | Input | Output | Throws | DB operations |
+|---|---|---|---|---|
+| `create(array $input, User $actor)` | `customer_id?`, `lines` (`product_id`, `quantity`), `discount_type?` (`amount`/`percent`), `discount_value?` (pesewas or basis points), `discount_reason?`, `payment_pesewas?`, `payment_method?`, `payment_reference?`, `notes?`, `idempotency_key?` | `Sale` with `lines` loaded | `SaleException` (`noLines`, `invalidQuantity`, `productUnavailable`, `insufficientStock`, `customerUnavailable`, `creditNeedsCustomer`, `discountTooLarge`, `discountNeedsAdmin`, `overpayment`, `paymentMethodRequired`) | One transaction: lookup by idempotency key; `lockForUpdate` on products; counter increment; insert `sales`, `sale_lines`; decrement `products.stock_quantity`; optional insert `payments` + `payment_allocations`; update `sales.paid_pesewas/status` |
+| `discountFor(int $subtotal, ?string $type, int $value, User $actor)` | | discount in pesewas | `discountTooLarge`, `discountNeedsAdmin` | none (also used for the live preview) |
+
+### PaymentService
+- **File:** [app/Services/PaymentService.php](../app/Services/PaymentService.php)
+- **Responsibility:** receive payments towards a customer's balance and allocate them oldest-first. See [PAYMENT_SYSTEM.md](PAYMENT_SYSTEM.md).
+- **Dependencies:** models `Sale`, `Payment`, `Customer`.
+- **Used by:** `Payments\Index`, `DatabaseSeeder`.
+- **Related tests:** `tests/Feature/Services/PaymentServiceTest.php`, `tests/Feature/Payments/PaymentsScreenTest.php`
+
+| Method | Input | Output | Throws | DB operations |
+|---|---|---|---|---|
+| `outstandingFor(Customer)` | | owed pesewas | — | sum over `sales` |
+| `previewAllocation(Customer, int $amount)` | | `list<array{sale, amount}>` | — | read only |
+| `receive(Customer, int $amount, PaymentMethod, User $actor, ?string $reference, ?string $notes, ?string $idempotencyKey)` | amount in pesewas | `Payment` with `allocations.sale` | `PaymentException` (`amountMustBePositive`, `nothingOwed`, `exceedsBalance`) | One transaction: idempotency lookup; `lockForUpdate` on the customer's unpaid sales; insert `payments`, `payment_allocations`; update each sale's `paid_pesewas` and `status` |
+
+### ReceiptNumberService
+- **File:** [app/Services/ReceiptNumberService.php](../app/Services/ReceiptNumberService.php)
+- **Responsibility:** issue the next receipt number (`R-000001`…) from the `counters` table.
+- **Used by:** `SaleService` (inside its transaction, so a rolled-back sale does not consume a number).
+
+| Method | Output | DB operations |
+|---|---|---|
+| `next()` | `string` | insert-or-ignore counter row; `lockForUpdate`; increment |
 
 ## Catalogue entry template
 

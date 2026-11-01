@@ -1,6 +1,6 @@
 # Business Rules
 
-Plain-language rules the system enforces, why they exist, and where. _As of 2026-11-01 (Phase 2): user-account, customer and product rules. Sales, payment, discount, promotion, refund, cancellation and receipt rules will be added here as those features are built._
+Plain-language rules the system enforces, why they exist, and where. _As of 2026-11-01 (Phase 3): user accounts, customers, products, sales, discounts, payments, balances, historical pricing and receipt numbering. Promotion, refund and cancellation rules will be added when built._
 
 ## Customers
 
@@ -40,3 +40,39 @@ Plain-language rules the system enforces, why they exist, and where. _As of 2026
 | U8 | Users cannot deactivate themselves or change their own role. | Prevents accidental self-lockout and self-promotion. | `UserService`; `UserPolicy::deactivate`; Edit view hides the button |
 | U9 | Changing a user's password (by reset or by an admin) signs them out everywhere else. | A password change usually means the old one may be compromised. | `PasswordResetService::reset()`, `UserService::update()` |
 | U10 | Sign-in is blocked for one minute after 5 failed attempts for the same email from the same IP. | Slows password guessing. | `LoginService` |
+
+## Sales
+
+| # | Rule | Why | Enforced in |
+|---|---|---|---|
+| S1 | Any signed-in staff member can record a sale. | Cashiers serve at the counter. | `SalePolicy::create` |
+| S2 | A sale has at least one product; quantities are whole numbers ≥ 1; the same product added twice becomes one line. | A sale with nothing in it, or fractional units, is a mistake. | `Sales\Create` rules; `SaleService::mergeLines` (`noLines`, `invalidQuantity`) |
+| S3 | Only active products with enough stock can be sold; stock is reduced when the sale is saved. | You cannot sell what you do not have. | `SaleService::lockProducts` (row lock, `productUnavailable`, `insufficientStock`); search hides inactive products and disables out-of-stock ones |
+| S4 | **Historical pricing:** each line stores the product's name, SKU and unit price at the moment of sale. Later product edits never change past sales or receipts. | Receipts and balances must not change after the fact. | `sale_lines` snapshot columns; `SaleServiceTest::test_later_price_changes_do_not_change_past_sales` (ADR-0006) |
+| S5 | Totals: subtotal = Σ unit price × qty; total = subtotal − discount. All in pesewas. | Exact money. | `SaleService::create`; see FINANCIAL_LOGIC.md |
+| S6 | **Discounts:** one per sale, as GH₵ or %, never more than the subtotal; optional reason. % discounts round half up to the pesewa. | Simple, auditable discounts. | `SaleService::discountFor`; `Money::percentOf` |
+| S7 | Cashiers may discount at most 10% of the subtotal (`sales.cashier_max_discount_percent`); larger discounts must be entered by an administrator (up to 100%). | Owner decision: discounts controlled, big ones approved. | `SaleService::discountFor` (`discountNeedsAdmin`); limit shown on the New sale screen |
+| S8 | **Credit:** a sale may be paid in full, in part or not at all at the counter; the unpaid part is the customer's balance. No minimum deposit. | Owner decision: instalment sales. | `SaleService::create` |
+| S9 | A balance requires a customer; walk-in (no customer) sales must be paid in full. Inactive customers cannot be used. | Debt must belong to someone. | `creditNeedsCustomer`, `customerUnavailable` |
+| S10 | The amount paid at the counter is between GH₵ 0.00 and the total, and needs a method (Cash, Mobile Money, Bank transfer, Card). | No overpayment or unknown money. | `overpayment`, `paymentMethodRequired` |
+| S11 | Sales are never edited or deleted once saved. | Financial history must be preserved (ADR-0004). | No edit/delete actions; corrections will come via refunds/cancellations |
+| S12 | Submitting the same sale twice (double click, retry) records it once. | Prevents double stock reduction and double payments. | `sales.idempotency_key`; `SaleService` returns the existing sale |
+
+## Receipt numbering
+
+| # | Rule | Why | Enforced in |
+|---|---|---|---|
+| R1 | Receipts are numbered `R-` + 6-digit running number (`R-000001`, …), assigned when the sale is saved. | Owner decision; easy to read out and file. | `ReceiptNumberService`; `config/sales.php` |
+| R2 | Numbers are unique, never reused, and a failed sale does not consume one (no gaps from errors). | Gaps or duplicates look like missing or hidden sales. | `counters` row locked and incremented inside the sale transaction; `sales.receipt_number` unique |
+
+## Payments and balances
+
+| # | Rule | Why | Enforced in |
+|---|---|---|---|
+| PY1 | Any signed-in staff member can receive a payment towards a customer's balance. | Customers pay at the counter. | `PaymentPolicy::create` |
+| PY2 | **Oldest first:** a payment is applied to the customer's oldest unpaid sale, then the next, until it is used up. | Owner decision (ADR-0006): predictable and easy to explain. | `PaymentService::allocate`; preview shown before saving |
+| PY3 | A payment must be more than GH₵ 0.00 and not more than the customer owes. Customers cannot build up credit. | Overpayments would need refunds or credit tracking, which do not exist yet. | `PaymentService::receive` (`amountMustBePositive`, `exceedsBalance`, `nothingOwed`) |
+| PY4 | Each payment records method, optional reference, who received it and when; it shows which receipts it paid. | Traceability for cash-up and disputes. | `payments`, `payment_allocations` |
+| PY5 | A customer's balance is the sum of (total − paid) over their sales; a sale's status is Paid, Part-paid or Unpaid from its paid amount. | One definition used everywhere. | `Customer::outstandingPesewas`, `scopeWithBalance`; `SaleStatus::for` |
+| PY6 | Payments are never edited or deleted; inactive customers can still pay what they owe. | Preserve history; collect debts. | No edit/delete actions; `receive` does not check `is_active` |
+| PY7 | Two payments taken at the same moment cannot over-settle a balance; submitting the same payment twice records it once. | Money must add up under real-world use. | Row locks on unpaid sales; `payments.idempotency_key` |

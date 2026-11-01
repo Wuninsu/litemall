@@ -6,7 +6,7 @@ Primary instructions for AI coding agents working on this repository. Keep this 
 
 ## 1. Project overview
 
-"Mall" is a staff-only sales, customer-credit and payments application priced in Ghana Cedis (GHS). **Built so far (Phases 1–2):** custom authentication, Admin/Cashier roles, user management, customers and products. Sales and payments are not built yet. Read [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md) before starting any task.
+"Mall" is a staff-only sales, customer-credit and payments application priced in Ghana Cedis (GHS). **Built so far (Phases 1–3):** custom authentication, Admin/Cashier roles, user management, customers, products (photos, stock), sales with discounts and credit, receipts, payments allocated oldest-first, customer balances. Refunds/cancellations and reports are not built yet. Read [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md) before starting any task.
 
 ## 2. Technology stack (installed, verified)
 
@@ -39,16 +39,18 @@ app/Enums                  backed enums (UserRole)
 app/Exceptions             DomainException + Auth/, Users/ subclasses
 app/Http/Controllers       LogoutController (only non-Livewire endpoint)
 app/Http/Middleware        EnsureUserIsActive (alias `active`)
-app/Livewire               components by area (Auth/, Users/, Customers/, Products/), Forms/ for form objects
-resources/views/components shared Blade UI: x-icon, x-input, x-button, x-modal, x-nav-link
-app/Models                 Eloquent models (User, Customer, Product)
-app/Support                stateless helpers: Money (cedis ↔ pesewas), PhoneNumber (Ghana → +233…)
-app/Policies               UserPolicy, CustomerPolicy, ProductPolicy
-app/Services               UserService, CustomerService, ProductService, Auth/LoginService, Auth/PasswordResetService
+app/Livewire               components by area (Auth/, Users/, Customers/, Products/, Sales/, Payments/), Forms/ for form objects
+resources/views/components shared Blade UI: x-icon, x-input, x-textarea, x-button, x-modal, x-nav-link, x-stock-badge, x-sale-status
+app/Models                 User, Customer, Product, Sale, SaleLine, Payment, PaymentAllocation
+app/Enums                  UserRole, SaleStatus, PaymentMethod
+app/Support                stateless helpers: Money (cedis ↔ pesewas, percentages), PhoneNumber (Ghana → +233…)
+app/Policies               User, Customer, Product, Sale, Payment policies
+app/Services               UserService, CustomerService, ProductService, SaleService, PaymentService, ReceiptNumberService, Auth/*
+config/sales.php           cashier discount limit, receipt number format
 resources/views/layouts    app.blade.php (signed-in), guest.blade.php
 resources/views/livewire   component views
 routes/web.php             all routes (Route::livewire for pages)
-tests/Unit (Money, PhoneNumber), tests/Feature/{Auth,Users,Customers,Products,Services,Console,Components}
+tests/Unit (Money, PhoneNumber, SaleStatus), tests/Feature/{Auth,Users,Customers,Products,Sales,Payments,Services,Console,Components}
 docs/                      technical knowledge base
 ```
 
@@ -65,7 +67,7 @@ Every application table, including `users`, uses `$table->uuid('id')->primary()`
 ## 7. Database conventions
 
 - New schema changes go in **new** migrations (`php artisan make:migration --no-interaction`). The default users migration was edited once in Phase 1 before any shared deployment; don't do that again.
-- **Money = integer pesewas** (ADR-0005): `bigInteger`/`unsignedBigInteger` columns suffixed `_pesewas`. Never floats, never decimals. Convert only with `AppSupportMoney` (`parse` at input, `format` for display).
+- **Money = integer pesewas** (ADR-0005): `bigInteger`/`unsignedBigInteger` columns suffixed `_pesewas`. Never floats, never decimals. Convert only with `App\Support\Money` (`parse` at input, `format` for display, `percentOf` for percentages).
 - Uploaded files: validate type and size in the form object, store with `$file->store(dir, disk)` inside the service, delete replaced files only after the DB save succeeds (see `ProductService`).
 - Phone numbers: store `PhoneNumber::normalise()` output (`+233…`), display with `PhoneNumber::format()`.
 - Users and financial records are never hard-deleted — deactivate / reverse instead.
@@ -73,7 +75,13 @@ Every application table, including `users`, uses `$table->uuid('id')->primary()`
 
 ## 8. Financial business rules
 
-None implemented yet. Proposed rules (oldest-first payment allocation, historical price snapshots, reversal-based refunds) are ADR-0004/0006 in [docs/DECISIONS.md](docs/DECISIONS.md) — confirm with the user before building sales/payments. When implemented, document them in `docs/BUSINESS_RULES.md` and `docs/FINANCIAL_LOGIC.md` with GHS worked examples.
+Full list: [docs/BUSINESS_RULES.md](docs/BUSINESS_RULES.md) (S, R, PY rules); calculations with GH₵ examples: [docs/FINANCIAL_LOGIC.md](docs/FINANCIAL_LOGIC.md). Non-negotiables:
+
+- All sale and payment writes go through `SaleService` / `PaymentService` inside one transaction, with row locks (products for stock, unpaid sales for balances) and idempotency keys.
+- Sale lines snapshot name, SKU and unit price; never read current product prices for past sales.
+- Payments are applied oldest unpaid sale first; overpayment is refused; `sales.paid_pesewas` must always equal the sum of its allocations.
+- Discounts: one per sale, ≤ subtotal; cashiers ≤ `sales.cashier_max_discount_percent`. Credit requires a customer.
+- Sales and payments are never edited or deleted. Corrections (Phase 4) must be new reversal rows (ADR-0004).
 
 ## 9. Security requirements
 
@@ -121,7 +129,7 @@ Create a listed-but-missing doc (see `docs/README.md`) when the first feature it
 
 ```sh
 composer run dev                         # server + Vite + queue + logs
-php artisan test --compact               # all tests (139 passing)
+php artisan test --compact               # all tests (178 passing)
 php artisan test --compact --filter=Name # narrow run
 vendor/bin/pint --dirty --format agent   # format changed PHP files (required before finishing)
 php artisan storage:link                 # once per machine, for product photos
