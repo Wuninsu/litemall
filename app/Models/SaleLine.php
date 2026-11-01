@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\PriceTier;
 use App\Support\Money;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -12,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * One product on a sale. Name, SKU and unit price are copied from the product at the moment of sale
  * so later product changes never alter past sales (ADR-0006).
  */
-#[Fillable(['sale_id', 'product_id', 'product_name', 'product_sku', 'unit_price_pesewas', 'quantity', 'line_total_pesewas'])]
+#[Fillable(['sale_id', 'product_id', 'product_name', 'product_sku', 'unit_price_pesewas', 'price_tier', 'quantity', 'line_total_pesewas'])]
 class SaleLine extends Model
 {
     use HasUuids;
@@ -24,6 +25,7 @@ class SaleLine extends Model
     {
         return [
             'unit_price_pesewas' => 'integer',
+            'price_tier' => PriceTier::class,
             'quantity' => 'integer',
             'line_total_pesewas' => 'integer',
         ];

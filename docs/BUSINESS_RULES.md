@@ -6,7 +6,7 @@ Plain-language rules the system enforces, why they exist, and where. _As of 2026
 
 | # | Rule | Why | Enforced in |
 |---|---|---|---|
-| C1 | Any signed-in staff member can add and edit customers. | Cashiers register customers at the counter. | `CustomerPolicy::create/update` |
+| C1 | Any signed-in staff member can add and edit customers — on the Customers page or from the POS ("New" opens a modal and selects the new customer for the sale). | Cashiers register customers at the counter without losing the sale in progress. | `CustomerPolicy::create/update`; `Sales\Create::saveNewCustomer` → `CustomerService::create` |
 | C2 | A customer needs a name and a valid Ghana phone number (mobile or fixed line: national number starting 2, 3 or 5). Email, address and notes are optional. | The phone number is how staff find and contact the customer. | `CustomerForm` rules; `CustomerService` (`CustomerException::invalidPhone`) |
 | C3 | Phone numbers are stored in one standard form (`+233XXXXXXXXX`) and each number can belong to only one customer, however it is typed (`024 412 3456` = `+233244123456`). | Prevents the same person being registered twice, which would split their balance across two records. | `PhoneNumber::normalise`; `CustomerForm` unique rule on the normalised value; `customers.phone` unique index; `CustomerService` (`phoneTaken`) for races |
 | C4 | Only administrators can deactivate or reactivate a customer. | Hiding a customer affects everyone's work and, later, their credit. | `CustomerPolicy::changeStatus` |
@@ -53,8 +53,8 @@ Plain-language rules the system enforces, why they exist, and where. _As of 2026
 | S6 | **Discounts:** one per sale, as GH₵ or %, never more than the subtotal; optional reason. % discounts round half up to the pesewa. | Simple, auditable discounts. | `SaleService::discountFor`; `Money::percentOf` |
 | S7 | Cashiers may discount at most 10% of the subtotal (`sales.cashier_max_discount_percent`); larger discounts must be entered by an administrator (up to 100%). | Owner decision: discounts controlled, big ones approved. | `SaleService::discountFor` (`discountNeedsAdmin`); limit shown on the New sale screen |
 | S8 | **Credit:** a sale may be paid in full, in part or not at all at the counter; the unpaid part is the customer's balance. No minimum deposit. | Owner decision: instalment sales. | `SaleService::create` |
-| S9 | A balance requires a customer; walk-in (no customer) sales must be paid in full. Inactive customers cannot be used. | Debt must belong to someone. | `creditNeedsCustomer`, `customerUnavailable` |
-| S10 | The amount paid at the counter is between GH₵ 0.00 and the total, and needs a method (Cash, Mobile Money, Bank transfer, Card). | No overpayment or unknown money. | `overpayment`, `paymentMethodRequired` |
+| S9 | When no customer is chosen the sale is a **walk-in** sale (shown as "Walk-in customer" on the POS and "Walk-in" on lists and receipts). A balance requires a customer; walk-in sales must be paid in full. Inactive customers cannot be used. | Debt must belong to someone. | `creditNeedsCustomer`, `customerUnavailable` |
+| S10 | The amount paid at the counter is between GH₵ 0.00 and the total, and needs a method (Cash, Mobile Money, Bank transfer, Card). With **Cash**, more than the total may be handed over: only the total is recorded and the difference is shown as change. | No overpayment or unknown money; cashiers see the change to give. | `overpayment`, `paymentMethodRequired`; `Sales\Create::summary()` caps cash |
 | S11 | Sales are never edited or deleted once saved. | Financial history must be preserved (ADR-0004). | No edit/delete actions; corrections will come via refunds/cancellations |
 | S12 | Submitting the same sale twice (double click, retry) records it once. | Prevents double stock reduction and double payments. | `sales.idempotency_key`; `SaleService` returns the existing sale |
 
@@ -76,3 +76,14 @@ Plain-language rules the system enforces, why they exist, and where. _As of 2026
 | PY5 | A customer's balance is the sum of (total − paid) over their sales; a sale's status is Paid, Part-paid or Unpaid from its paid amount. | One definition used everywhere. | `Customer::outstandingPesewas`, `scopeWithBalance`; `SaleStatus::for` |
 | PY6 | Payments are never edited or deleted; inactive customers can still pay what they owe. | Preserve history; collect debts. | No edit/delete actions; `receive` does not check `is_active` |
 | PY7 | Two payments taken at the same moment cannot over-settle a balance; submitting the same payment twice records it once. | Money must add up under real-world use. | Row locks on unpaid sales; `payments.idempotency_key` |
+
+## Wholesale pricing (ADR-0019)
+
+| # | Rule | Why | Enforced in |
+|---|---|---|---|
+| W1 | A product may have a wholesale price (optional), which must be more than GH₵ 0.00 and not more than the retail price, and a "wholesale from" minimum quantity (≥ 1, default 1). Only administrators set them. | Traders buy in bulk at lower prices; a wholesale price above retail is a mistake. | `ProductForm`, `ProductService` (`invalidWholesalePrice`, `invalidWholesaleMinimum`), `ProductPolicy` |
+| W2 | Each sale is rung up at **Retail** (default) or **Wholesale** prices. Any staff member can switch on the POS. | Cashiers serve traders at the counter. | `Sales\Create::setPriceTier`; `SaleService` input `price_tier` |
+| W3 | In wholesale mode, a line gets the wholesale price only if the product has one **and** the line quantity reaches its minimum; otherwise that line is charged retail. | Wholesale prices are for bulk quantities. | `Product::unitPriceFor()` (used by POS preview and `SaleService`) |
+| W4 | Customers can be marked as wholesale customers; choosing one on the POS switches the sale to wholesale. Switching back to walk-in returns to retail. | Fewer mistakes with regular traders. | `customers.is_wholesale`; `Sales\Create::selectCustomer/clearCustomer` |
+| W5 | The tier is recorded on the sale and on every line, together with the price charged, and shown on receipts and the sales list. Later price changes never alter past sales. | Audit trail for lower-price sales; historical pricing (S4). | `sales.price_tier`, `sale_lines.price_tier`, `unit_price_pesewas` snapshot |
+| W6 | Discounts (S6–S7) still apply on top of wholesale prices. | One discount mechanism. | `SaleService::discountFor` on the wholesale subtotal |

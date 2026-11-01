@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\PriceTier;
 use App\Enums\SaleStatus;
 use App\Support\Money;
 use Database\Factories\SaleFactory;
@@ -17,7 +18,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * A completed sale. Amounts are integer pesewas; `paid_pesewas` and `status` are maintained by
  * SaleService / PaymentService only. Sales are never edited or deleted (ADR-0004).
  */
-#[Fillable(['receipt_number', 'customer_id', 'sold_by', 'subtotal_pesewas', 'discount_pesewas', 'discount_reason', 'total_pesewas', 'paid_pesewas', 'status', 'notes', 'idempotency_key', 'sold_at'])]
+#[Fillable(['receipt_number', 'customer_id', 'sold_by', 'price_tier', 'subtotal_pesewas', 'discount_pesewas', 'discount_reason', 'total_pesewas', 'paid_pesewas', 'status', 'notes', 'idempotency_key', 'sold_at'])]
 class Sale extends Model
 {
     /** @use HasFactory<SaleFactory> */
@@ -34,6 +35,7 @@ class Sale extends Model
             'total_pesewas' => 'integer',
             'paid_pesewas' => 'integer',
             'status' => SaleStatus::class,
+            'price_tier' => PriceTier::class,
             'sold_at' => 'datetime',
         ];
     }

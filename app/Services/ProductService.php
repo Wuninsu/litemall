@@ -19,7 +19,7 @@ use Throwable;
 class ProductService
 {
     /**
-     * @param  array{name: string, sku?: string|null, category?: string|null, price_pesewas: int, stock_quantity?: int, description?: string|null}  $data
+     * @param  array{name: string, sku?: string|null, category?: string|null, price_pesewas: int, wholesale_price_pesewas?: int|null, wholesale_min_quantity?: int, stock_quantity?: int, description?: string|null}  $data
      *
      * @throws ProductException
      */
@@ -35,7 +35,7 @@ class ProductService
      * Updates details, price and stock. A new `$image` replaces the current photo; `$removeImage`
      * deletes it. Old files are removed from storage only after the database update succeeds.
      *
-     * @param  array{name: string, sku?: string|null, category?: string|null, price_pesewas: int, stock_quantity?: int, description?: string|null}  $data
+     * @param  array{name: string, sku?: string|null, category?: string|null, price_pesewas: int, wholesale_price_pesewas?: int|null, wholesale_min_quantity?: int, stock_quantity?: int, description?: string|null}  $data
      *
      * @throws ProductException
      */
@@ -70,7 +70,7 @@ class ProductService
     }
 
     /**
-     * @param  array{name: string, sku?: string|null, category?: string|null, price_pesewas: int, stock_quantity?: int, description?: string|null}  $data
+     * @param  array{name: string, sku?: string|null, category?: string|null, price_pesewas: int, wholesale_price_pesewas?: int|null, wholesale_min_quantity?: int, stock_quantity?: int, description?: string|null}  $data
      *
      * @throws ProductException
      */
@@ -86,6 +86,17 @@ class ProductService
             throw ProductException::invalidStock();
         }
 
+        $wholesalePrice = array_key_exists('wholesale_price_pesewas', $data) ? $data['wholesale_price_pesewas'] : $product->wholesale_price_pesewas;
+        $wholesaleMin = (int) ($data['wholesale_min_quantity'] ?? $product->wholesale_min_quantity ?? 1);
+
+        if ($wholesalePrice !== null && ($wholesalePrice <= 0 || $wholesalePrice > $data['price_pesewas'])) {
+            throw ProductException::invalidWholesalePrice();
+        }
+
+        if ($wholesaleMin < 1) {
+            throw ProductException::invalidWholesaleMinimum();
+        }
+
         $sku = Str::upper(trim((string) ($data['sku'] ?? '')));
         $category = Str::squish((string) ($data['category'] ?? ''));
         $description = trim((string) ($data['description'] ?? ''));
@@ -95,6 +106,8 @@ class ProductService
             'sku' => $sku === '' ? null : $sku,
             'category' => $category === '' ? null : Str::ucfirst($category),
             'price_pesewas' => $data['price_pesewas'],
+            'wholesale_price_pesewas' => $wholesalePrice,
+            'wholesale_min_quantity' => $wholesaleMin,
             'stock_quantity' => $stock,
             'description' => $description === '' ? null : $description,
         ]);

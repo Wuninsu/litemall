@@ -41,7 +41,7 @@ Any rule violation throws `SaleException` and the whole transaction rolls back: 
 
 | Screen | Route | Notes |
 |---|---|---|
-| New sale | `/sales/new` (`sales.create`) | Full page (too large for a side panel, ADR-0011). Product search → cart with quantities; customer search (optional) showing what they already owe; discount (GH₵ / %) with live limit check; payment now with "Pay in full"; live totals in a brand panel; "Complete sale". `?customer=<id>` preselects a customer. |
+| Point of sale (New sale) | `/sales/new` (`sales.create`) | Full-screen POS (`layouts::pos`, ADR-0018): product grid with photos and category chips, search/scan with Enter to add, cart with −/+ steppers, customer picker, discount, "Charge" button that opens a Take payment dialog (amount due, payment-method tiles, cash received with quick-cash buttons, change due or balance, reference, note, "Complete sale"), then a "Sale complete" screen (receipt number, change due, Print receipt, New sale). `?customer=<id>` preselects a customer. Details in LIVEWIRE_COMPONENTS.md. |
 | Sales list | `/sales` (`sales.index`) | Search receipt or customer; period (today default, 7/30 days, all); status (Paid / Part-paid / Unpaid); tiles for count, amount sold and still owed. |
 | Receipt | `/sales/{sale}` (`sales.show`) | Printable (sidebar/header hidden in print). Lines, subtotal, discount and reason, total, paid, balance, every payment applied to the sale, served by, notes. "Receive payment" shortcut when a balance remains. |
 

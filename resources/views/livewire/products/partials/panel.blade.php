@@ -70,8 +70,10 @@
             <section class="grid gap-4">
                 <h3 class="text-[11px] font-bold tracking-wider text-slate-400 uppercase">Price and stock</h3>
                 <div class="grid gap-4 sm:grid-cols-2">
-                    <x-input wire:model="form.price" id="product-price" label="Selling price" prefix="GH₵" placeholder="0.00" inputmode="decimal" autocomplete="off" required />
+                    <x-input wire:model="form.price" id="product-price" label="Retail price" prefix="GH₵" placeholder="0.00" inputmode="decimal" autocomplete="off" required />
                     <x-input wire:model="form.stock" id="product-stock" type="number" min="0" step="1" label="Quantity in stock" inputmode="numeric" required />
+                    <x-input wire:model="form.wholesalePrice" id="product-wholesale-price" label="Wholesale price (optional)" prefix="GH₵" placeholder="Leave blank if none" inputmode="decimal" autocomplete="off" />
+                    <x-input wire:model="form.wholesaleMinQuantity" id="product-wholesale-min" type="number" min="1" step="1" label="Wholesale from (units)" inputmode="numeric" hint="Below this quantity the retail price is charged." />
                 </div>
                 <p class="text-[13px] text-slate-500">
                     @if ($editing)

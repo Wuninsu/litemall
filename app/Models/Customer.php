@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\DB;
 
-#[Fillable(['name', 'phone', 'email', 'address', 'notes', 'is_active', 'created_by'])]
+#[Fillable(['name', 'phone', 'email', 'address', 'notes', 'is_wholesale', 'is_active', 'created_by'])]
 class Customer extends Model
 {
     /** @use HasFactory<CustomerFactory> */
@@ -25,6 +25,7 @@ class Customer extends Model
     protected function casts(): array
     {
         return [
+            'is_wholesale' => 'boolean',
             'is_active' => 'boolean',
         ];
     }

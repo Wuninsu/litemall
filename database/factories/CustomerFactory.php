@@ -29,6 +29,13 @@ class CustomerFactory extends Factory
         ];
     }
 
+    public function wholesale(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_wholesale' => true,
+        ]);
+    }
+
     public function inactive(): static
     {
         return $this->state(fn (array $attributes) => [

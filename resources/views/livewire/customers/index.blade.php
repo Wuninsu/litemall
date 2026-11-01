@@ -47,7 +47,7 @@
                     @forelse ($customers as $customer)
                         <tr wire:key="customer-{{ $customer->id }}" class="hover:bg-slate-50/60">
                             <td class="px-5 py-3">
-                                <p class="font-semibold">{{ $customer->name }}</p>
+                                <p class="font-semibold">{{ $customer->name }}@if ($customer->is_wholesale) <span class="ml-1 rounded bg-amber-100 px-1.5 py-px text-[10.5px] font-bold text-amber-800">Wholesale</span>@endif</p>
                                 @if ($customer->email)
                                     <p class="truncate text-[13px] text-slate-500">{{ $customer->email }}</p>
                                 @endif
@@ -113,6 +113,10 @@
                     <h3 class="text-[11px] font-bold tracking-wider text-slate-400 uppercase">Details</h3>
                     <x-input wire:model="form.address" id="customer-address" label="Location / address (optional)" placeholder="e.g. Madina, Accra" />
                     <x-textarea wire:model="form.notes" id="customer-notes" label="Notes (optional)" placeholder="Anything staff should know about this customer" />
+                    <label class="flex items-start gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm has-checked:border-amber-400 has-checked:bg-amber-50/60">
+                        <input wire:model="form.isWholesale" type="checkbox" class="mt-0.5 size-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500/30">
+                        <span><span class="block font-bold">Wholesale customer</span><span class="text-[13px] text-slate-500">The POS switches to wholesale prices when this customer is chosen.</span></span>
+                    </label>
                 </section>
 
                 @if ($editing)

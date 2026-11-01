@@ -20,7 +20,7 @@
 | `App\Exceptions\Auth\InvalidPasswordResetException` | Password broker rejects a reset (bad/expired token, unknown email) |
 | `App\Exceptions\Users\UserManagementException` | `lastActiveAdmin()`, `cannotDeactivateSelf()`, `cannotChangeOwnRole()` |
 | `App\Exceptions\Customers\CustomerException` | `invalidPhone()` (not a Ghana number), `phoneTaken()` (unique index hit, e.g. a race between two saves) |
-| `App\Exceptions\Products\ProductException` | `invalidPrice()` (≤ 0), `invalidStock()` (< 0), `imageNotSaved()` (storage failure), `skuTaken()` (unique index hit); exposes `$field` (`price` / `stock` / `image` / `sku`) so screens can show the error under the right input |
+| `App\Exceptions\Products\ProductException` | `invalidPrice()` (≤ 0), `invalidStock()` (< 0), `imageNotSaved()` (storage failure), `invalidWholesalePrice()` (≤ 0 or above retail), `invalidWholesaleMinimum()` (< 1), `skuTaken()` (unique index hit); exposes `$field` (`price`, `wholesalePrice`, `wholesaleMinQuantity`, `stock`, `image`, `sku`) so screens can show the error under the right input |
 
 | `App\Exceptions\Sales\SaleException` | Sale rule violations; exposes `$field` (`lines`, `customer`, `discount`, `payment`) for the New sale screen. Messages listed under SaleService below |
 | `App\Exceptions\Payments\PaymentException` | `amountMustBePositive()`, `nothingOwed()`, `exceedsBalance(int $owed)` |
@@ -92,7 +92,7 @@ Authorisation (who may call these) is **not** checked here; callers authorise vi
 | `update(Customer, array{…same})` | | updated `Customer` (creator unchanged) | `invalidPhone`, `phoneTaken` | update `customers` |
 | `deactivate(Customer)` / `activate(Customer)` | | void | — | update `is_active` |
 
-Normalisation: name squished (single spaces), phone → `+233…`, email trimmed + lower-cased, blank optional fields → `null`.
+Normalisation: name squished (single spaces), phone → `+233…`, email trimmed + lower-cased, blank optional fields → `null`. `is_wholesale` (bool, ADR-0019) is stored as given; on update it is left unchanged when omitted.
 
 ### ProductService
 - **File:** [app/Services/ProductService.php](../app/Services/ProductService.php)
@@ -103,14 +103,14 @@ Normalisation: name squished (single spaces), phone → `+233…`, email trimmed
 
 | Method | Input | Output | Throws | DB / file operations |
 |---|---|---|---|---|
-| `create(array{name, sku?, category?, price_pesewas, stock_quantity?, description?}, User $actor, ?UploadedFile $image = null)` | price already in pesewas (converted by `ProductForm`) | new active `Product` with `created_by = $actor` | `invalidPrice`, `invalidStock`, `skuTaken`, `imageNotSaved` | store image (if any); insert `products` |
+| `create(array{name, sku?, category?, price_pesewas, wholesale_price_pesewas?, wholesale_min_quantity?, stock_quantity?, description?}, User $actor, ?UploadedFile $image = null)` | price already in pesewas (converted by `ProductForm`) | new active `Product` with `created_by = $actor` | `invalidPrice`, `invalidStock`, `skuTaken`, `imageNotSaved` | store image (if any); insert `products` |
 | `update(Product, array{…same}, ?UploadedFile $image = null, bool $removeImage = false)` | new image replaces; `removeImage` clears | updated `Product` | same | store new image; update `products`; **after** a successful save delete the previous file |
 
 File safety: a newly stored image is deleted again if the database save fails (e.g. duplicate SKU), so no orphaned files are left.
 | `deactivate(Product)` / `activate(Product)` | | void | — | update `is_active` |
 | `categories()` | — | `list<string>` distinct non-null categories, A→Z | — | select distinct |
 
-Normalisation: name squished, SKU trimmed + upper-cased (blank → `null`), category squished + first letter capitalised (blank → `null`), blank description → `null`.
+Normalisation: name squished, SKU trimmed + upper-cased (blank → `null`), category squished + first letter capitalised (blank → `null`), blank description → `null`. Wholesale (ADR-0019): `wholesale_price_pesewas` null or 0 < value ≤ `price_pesewas` (`invalidWholesalePrice`), `wholesale_min_quantity` ≥ 1 (`invalidWholesaleMinimum`); omitted keys keep the current values.
 
 ### SaleService
 - **File:** [app/Services/SaleService.php](../app/Services/SaleService.php)
@@ -121,7 +121,7 @@ Normalisation: name squished, SKU trimmed + upper-cased (blank → `null`), cate
 
 | Method | Input | Output | Throws | DB operations |
 |---|---|---|---|---|
-| `create(array $input, User $actor)` | `customer_id?`, `lines` (`product_id`, `quantity`), `discount_type?` (`amount`/`percent`), `discount_value?` (pesewas or basis points), `discount_reason?`, `payment_pesewas?`, `payment_method?`, `payment_reference?`, `notes?`, `idempotency_key?` | `Sale` with `lines` loaded | `SaleException` (`noLines`, `invalidQuantity`, `productUnavailable`, `insufficientStock`, `customerUnavailable`, `creditNeedsCustomer`, `discountTooLarge`, `discountNeedsAdmin`, `overpayment`, `paymentMethodRequired`) | One transaction: lookup by idempotency key; `lockForUpdate` on products; counter increment; insert `sales`, `sale_lines`; decrement `products.stock_quantity`; optional insert `payments` + `payment_allocations`; update `sales.paid_pesewas/status` |
+| `create(array $input, User $actor)` | `customer_id?`, `lines` (`product_id`, `quantity`), `discount_type?` (`amount`/`percent`), `discount_value?` (pesewas or basis points), `discount_reason?`, `payment_pesewas?`, `payment_method?`, `payment_reference?`, `notes?`, `idempotency_key?`, `price_tier?` (`retail` default / `wholesale`; each line priced by `Product::unitPriceFor()`, ADR-0019) | `Sale` with `lines` loaded | `SaleException` (`noLines`, `invalidQuantity`, `productUnavailable`, `insufficientStock`, `customerUnavailable`, `creditNeedsCustomer`, `discountTooLarge`, `discountNeedsAdmin`, `overpayment`, `paymentMethodRequired`) | One transaction: lookup by idempotency key; `lockForUpdate` on products; counter increment; insert `sales`, `sale_lines`; decrement `products.stock_quantity`; optional insert `payments` + `payment_allocations`; update `sales.paid_pesewas/status` |
 | `discountFor(int $subtotal, ?string $type, int $value, User $actor)` | | discount in pesewas | `discountTooLarge`, `discountNeedsAdmin` | none (also used for the live preview) |
 
 ### PaymentService

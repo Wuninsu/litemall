@@ -153,3 +153,21 @@ Never silently change an Accepted decision — add a new ADR that supersedes it.
 - **Chosen:** Nullable unique `idempotency_key` (UUID) on `sales` and `payments`. The screens generate one per form; the services return the existing record when the key was already used.
 - **Advantages:** Safe retries; ready for sync.
 - **Disadvantages:** One more column; keys must be regenerated for each new operation (done when the page or panel opens).
+
+## ADR-0018 — Dedicated full-screen POS layout for sale entry
+- **Date:** 2026-11-01 · **Status:** Accepted (owner asked for a full-page modern POS at /sales/new)
+- **Problem:** Sale entry inside the admin shell wasted space and needed several clicks per item; cashiers also need change calculation and a fast "next customer" loop.
+- **Alternatives:** Keep the form in `layouts::app`; a separate SPA; a Livewire page with its own full-screen layout.
+- **Chosen:** `layouts::pos` (brand top bar, no sidebar) with a product grid, cart, payment tiles, cash received + change due, and an in-place "Sale complete" screen. Sale rules are unchanged and still enforced by `SaleService`.
+- **Advantages:** Touch- and scanner-friendly (tap tiles, Enter adds by SKU); cashier stays on one screen; no new dependencies.
+- **Disadvantages:** Grid shows at most 60 products at once (search for others); change is not stored.
+- **Implications:** Future POS features (held/parked sales, receipt printer integration, keyboard shortcuts) belong in this component/layout.
+
+## ADR-0019 — Wholesale pricing: second price per product, switched per sale
+- **Date:** 2026-11-01 · **Status:** Accepted (owner asked to build the recommended option)
+- **Problem:** The shop sells to traders at lower prices; the POS only knew one price per product.
+- **Alternatives:** (a) manual discounts (cashier limit 10%, no record of why); (b) a wholesale price per product with a Retail/Wholesale switch per sale, wholesale customers and a minimum quantity; (c) quantity-break price tables per product.
+- **Chosen:** (b). `products.wholesale_price_pesewas` (optional, ≤ retail) and `wholesale_min_quantity` (default 1); `customers.is_wholesale`; `sales.price_tier` and `sale_lines.price_tier`. A sale in wholesale mode charges the wholesale price on each line where the product has one **and** the line quantity reaches the minimum; other lines use retail. Choosing a wholesale customer switches the POS to wholesale; returning to walk-in switches back to retail. All staff may use the switch; only admins set wholesale prices. The single rule lives in `Product::unitPriceFor()` and is used by both the POS preview and `SaleService`.
+- **Advantages:** Simple to set up; prices and the tier are snapshotted per line; discounts still work on top.
+- **Disadvantages:** Only two price levels; any cashier can sell at wholesale prices to anyone (mitigated by the tier being recorded on every sale and line).
+- **Implications:** If wholesale abuse becomes a concern, restrict `setPriceTier` to admins or to wholesale customers (new ADR). Quantity breaks (option c) would replace `unitPriceFor()` with a lookup table.

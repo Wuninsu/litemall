@@ -23,6 +23,19 @@ enum PaymentMethod: string
     }
 
     /**
+     * Icon name for `<x-icon>`.
+     */
+    public function icon(): string
+    {
+        return match ($this) {
+            self::Cash => 'cash',
+            self::MobileMoney => 'phone',
+            self::BankTransfer => 'bank',
+            self::Card => 'card',
+        };
+    }
+
+    /**
      * Whether staff should record a transaction reference (e.g. MoMo transaction ID).
      */
     public function expectsReference(): bool

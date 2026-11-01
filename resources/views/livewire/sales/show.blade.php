@@ -14,7 +14,7 @@
         <header class="flex flex-wrap items-start justify-between gap-4 border-b border-dashed border-slate-200 pb-6">
             <div>
                 <p class="text-xl font-extrabold">{{ config('app.name') }}</p>
-                <p class="text-sm text-slate-500">Sales receipt</p>
+                <p class="text-sm text-slate-500">Sales receipt{{ $sale->price_tier?->value === 'wholesale' ? ' · Wholesale' : '' }}</p>
             </div>
             <div class="text-right">
                 <p class="font-mono text-lg font-bold">{{ $sale->receipt_number }}</p>
@@ -50,7 +50,7 @@
                 @foreach ($sale->lines as $line)
                     <tr wire:key="line-{{ $line->id }}">
                         <td class="py-2.5">
-                            <p class="font-semibold">{{ $line->product_name }}</p>
+                            <p class="font-semibold">{{ $line->product_name }}@if ($line->price_tier?->value === 'wholesale') <span class="ml-1 rounded bg-amber-100 px-1.5 py-px text-[10.5px] font-bold text-amber-800 print:border print:border-slate-300">Wholesale</span>@endif</p>
                             @if ($line->product_sku)
                                 <p class="font-mono text-xs text-slate-500">{{ $line->product_sku }}</p>
                             @endif

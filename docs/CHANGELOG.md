@@ -5,8 +5,18 @@ All notable changes to this project are recorded here. Newest entries at the top
 ## [Unreleased]
 
 ### Added
+- Wholesale pricing (2026-11-01, ADR-0019):
+  - Optional wholesale price and "wholesale from" minimum quantity per product (admins); shown in the product list, details page and panel.
+  - "Wholesale customer" flag (Customers panel and POS new-customer dialog), shown as a badge.
+  - Retail / Wholesale switch on the POS; choosing a wholesale customer switches to wholesale automatically, walk-in switches back to retail. Each line gets the wholesale price only when the product has one and the minimum quantity is reached.
+  - Price tier stored on sales and sale lines; receipts and the sales list mark wholesale sales and lines.
+  - `PriceTier` enum, `Product::unitPriceFor()`, migration `2026_11_01_211833_add_wholesale_pricing`, demo wholesale prices and a wholesale customer.
+  - 10 new tests (197 total).
 - Phase 3 — Sales and payments (2026-11-01):
-  - New sale page: product search, cart with quantities, optional customer (search by name or phone, shows what they owe), one discount per sale (GH₵ or %, cashiers up to 10%), payment at the counter (Cash, Mobile Money, Bank transfer, Card + reference), live totals, "Pay in full". Stock is reduced on save.
+  - POS checkout: payment method and amount received moved into a "Take payment" dialog opened by the "Charge" button (amount pre-filled with the total).
+  - POS customer card: "Walk-in customer" whenever none is chosen, with Choose (search) and New (modal that creates and selects the customer without leaving the POS).
+  - Full-screen point of sale at `/sales/new` (ADR-0018): product grid with photos and categories, scan/search with Enter to add, cart steppers, payment tiles, cash received with quick-cash buttons and change due, "Sale complete" screen with Print receipt / New sale.
+  - Sale entry rules: product search, cart with quantities, optional customer (search by name or phone, shows what they owe), one discount per sale (GH₵ or %, cashiers up to 10%), payment at the counter (Cash, Mobile Money, Bank transfer, Card + reference), live totals, "Pay in full". Stock is reduced on save.
   - Credit sales for named customers with no minimum deposit; walk-in sales must be paid in full.
   - Receipt numbers `R-000001`… from a locked counter (no duplicates, no gaps from failed sales).
   - Printable receipt page with lines, totals, discount, payments applied and balance.

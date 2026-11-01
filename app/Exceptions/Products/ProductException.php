@@ -19,6 +19,16 @@ class ProductException extends DomainException
         return new self('The price must be more than GH₵ 0.00.', 'price');
     }
 
+    public static function invalidWholesalePrice(): self
+    {
+        return new self('The wholesale price must be more than GH₵ 0.00 and not more than the retail price.', 'wholesalePrice');
+    }
+
+    public static function invalidWholesaleMinimum(): self
+    {
+        return new self('The wholesale minimum quantity must be at least 1.', 'wholesaleMinQuantity');
+    }
+
     public static function invalidStock(): self
     {
         return new self('The quantity in stock cannot be negative.', 'stock');

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\PaymentMethod;
+use App\Enums\PriceTier;
 use App\Enums\SaleStatus;
 use App\Exceptions\Sales\SaleException;
 use App\Models\Customer;
@@ -35,7 +36,9 @@ class SaleService
      *     payment_reference?: string|null,
      *     notes?: string|null,
      *     idempotency_key?: string|null,
-     * }  $input  discount_value is pesewas for 'amount' and basis points (1% = 100) for 'percent'
+     *     price_tier?: PriceTier|string|null,
+     * }  $input  discount_value is pesewas for 'amount' and basis points (1% = 100) for 'percent';
+     *            price_tier defaults to retail (ADR-0019)
      *
      * @throws SaleException
      */
@@ -51,20 +54,23 @@ class SaleService
             $quantities = $this->mergeLines($input['lines'] ?? []);
             $customer = $this->resolveCustomer($input['customer_id'] ?? null);
             $products = $this->lockProducts($quantities);
+            $tier = $this->resolveTier($input['price_tier'] ?? null);
 
             $lines = [];
             $subtotal = 0;
 
             foreach ($quantities as $productId => $quantity) {
                 $product = $products[$productId];
-                $lineTotal = $product->price_pesewas * $quantity;
+                $price = $product->unitPriceFor($tier, $quantity);
+                $lineTotal = $price['pesewas'] * $quantity;
                 $subtotal += $lineTotal;
 
                 $lines[] = [
                     'product_id' => $product->id,
                     'product_name' => $product->name,
                     'product_sku' => $product->sku,
-                    'unit_price_pesewas' => $product->price_pesewas,
+                    'unit_price_pesewas' => $price['pesewas'],
+                    'price_tier' => $price['tier'],
                     'quantity' => $quantity,
                     'line_total_pesewas' => $lineTotal,
                 ];
@@ -94,6 +100,7 @@ class SaleService
                 'receipt_number' => $this->receiptNumbers->next(),
                 'customer_id' => $customer?->id,
                 'sold_by' => $actor->id,
+                'price_tier' => $tier,
                 'subtotal_pesewas' => $subtotal,
                 'discount_pesewas' => $discount,
                 'discount_reason' => $discount > 0 ? $this->blankToNull($input['discount_reason'] ?? null) : null,
@@ -240,6 +247,15 @@ class SaleService
         }
 
         return $customer;
+    }
+
+    private function resolveTier(PriceTier|string|null $tier): PriceTier
+    {
+        if ($tier instanceof PriceTier) {
+            return $tier;
+        }
+
+        return PriceTier::tryFrom((string) $tier) ?? PriceTier::Retail;
     }
 
     private function resolveMethod(PaymentMethod|string|null $method): ?PaymentMethod

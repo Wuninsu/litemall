@@ -16,7 +16,7 @@ use Illuminate\Support\Str;
 class CustomerService
 {
     /**
-     * @param  array{name: string, phone: string, email?: string|null, address?: string|null, notes?: string|null}  $data
+     * @param  array{name: string, phone: string, email?: string|null, address?: string|null, notes?: string|null, is_wholesale?: bool}  $data
      *
      * @throws CustomerException
      */
@@ -29,7 +29,7 @@ class CustomerService
     }
 
     /**
-     * @param  array{name: string, phone: string, email?: string|null, address?: string|null, notes?: string|null}  $data
+     * @param  array{name: string, phone: string, email?: string|null, address?: string|null, notes?: string|null, is_wholesale?: bool}  $data
      *
      * @throws CustomerException
      */
@@ -49,7 +49,7 @@ class CustomerService
     }
 
     /**
-     * @param  array{name: string, phone: string, email?: string|null, address?: string|null, notes?: string|null}  $data
+     * @param  array{name: string, phone: string, email?: string|null, address?: string|null, notes?: string|null, is_wholesale?: bool}  $data
      *
      * @throws CustomerException
      */
@@ -67,6 +67,7 @@ class CustomerService
             'email' => $this->blankToNull($data['email'] ?? null, lower: true),
             'address' => $this->blankToNull($data['address'] ?? null),
             'notes' => $this->blankToNull($data['notes'] ?? null),
+            'is_wholesale' => (bool) ($data['is_wholesale'] ?? $customer->is_wholesale ?? false),
         ]);
 
         try {

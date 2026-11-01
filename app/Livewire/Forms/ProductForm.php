@@ -33,6 +33,13 @@ class ProductForm extends Form
 
     public string $price = '';
 
+    /**
+     * Optional wholesale price in cedis; blank means the product has no wholesale price.
+     */
+    public string $wholesalePrice = '';
+
+    public string $wholesaleMinQuantity = '1';
+
     public string $stock = '0';
 
     public string $description = '';
@@ -49,6 +56,8 @@ class ProductForm extends Form
         $this->sku = (string) $product->sku;
         $this->category = (string) $product->category;
         $this->price = Money::toInput($product->price_pesewas);
+        $this->wholesalePrice = $product->hasWholesalePrice() ? Money::toInput($product->wholesale_price_pesewas) : '';
+        $this->wholesaleMinQuantity = (string) max(1, $product->wholesale_min_quantity);
         $this->stock = (string) $product->stock_quantity;
         $this->description = (string) $product->description;
     }
@@ -77,6 +86,26 @@ class ProductForm extends Form
                     }
                 },
             ],
+            'wholesalePrice' => [
+                'nullable',
+                'string',
+                function (string $attribute, mixed $value, Closure $fail): void {
+                    if (trim((string) $value) === '') {
+                        return;
+                    }
+
+                    if (! Money::isValid((string) $value) || Money::parse((string) $value) <= 0) {
+                        $fail('Enter the wholesale price in cedis, e.g. 950 or 1,050.00.');
+
+                        return;
+                    }
+
+                    if (Money::isValid($this->price) && Money::parse((string) $value) > Money::parse($this->price)) {
+                        $fail('The wholesale price cannot be more than the retail price.');
+                    }
+                },
+            ],
+            'wholesaleMinQuantity' => ['required', 'integer', 'min:1', 'max:100000'],
             'stock' => ['required', 'integer', 'min:0', 'max:1000000'],
             'description' => ['nullable', 'string', 'max:2000'],
             'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:'.self::IMAGE_MAX_KB],
@@ -92,6 +121,8 @@ class ProductForm extends Form
         return [
             'sku.regex' => 'The SKU may only contain letters, numbers, dashes, dots, slashes and underscores.',
             'sku.unique' => 'Another product already uses this SKU.',
+            'wholesaleMinQuantity.integer' => 'Enter a whole number of units, e.g. 12.',
+            'wholesaleMinQuantity.min' => 'The minimum must be at least 1 unit.',
             'stock.integer' => 'Enter a whole number of units, e.g. 12.',
             'stock.min' => 'The quantity in stock cannot be negative.',
             'image.image' => 'The photo must be a JPG, PNG or WebP image.',
@@ -101,7 +132,7 @@ class ProductForm extends Form
     }
 
     /**
-     * @return array{name: string, sku: string|null, category: string|null, price_pesewas: int, stock_quantity: int, description: string|null}
+     * @return array{name: string, sku: string|null, category: string|null, price_pesewas: int, wholesale_price_pesewas: int|null, wholesale_min_quantity: int, stock_quantity: int, description: string|null}
      */
     public function payload(): array
     {
@@ -120,6 +151,8 @@ class ProductForm extends Form
             'sku' => $validated['sku'] ?? null,
             'category' => $validated['category'] ?? null,
             'price_pesewas' => Money::parse($validated['price']),
+            'wholesale_price_pesewas' => trim((string) ($validated['wholesalePrice'] ?? '')) === '' ? null : Money::parse($validated['wholesalePrice']),
+            'wholesale_min_quantity' => (int) $validated['wholesaleMinQuantity'],
             'stock_quantity' => (int) $validated['stock'],
             'description' => $validated['description'] ?? null,
         ];

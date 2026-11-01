@@ -61,6 +61,12 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
+        Product::query()->where('sku', 'FN-BIN-16')->update(['wholesale_price_pesewas' => 380_00, 'wholesale_min_quantity' => 6]);
+        Product::query()->where('sku', 'KT-MID-20')->update(['wholesale_price_pesewas' => 799_00, 'wholesale_min_quantity' => 3]);
+        Product::query()->where('sku', 'TV-SAM-43')->update(['wholesale_price_pesewas' => 3_200_00, 'wholesale_min_quantity' => 2]);
+
+        Customer::factory()->wholesale()->create(['name' => 'Asante Trading Ltd', 'created_by' => $admin->id]);
+
         $this->seedSales($cashier);
     }
 

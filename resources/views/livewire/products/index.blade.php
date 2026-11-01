@@ -81,7 +81,12 @@
                                 </a>
                             </td>
                             <td class="px-5 py-3 text-slate-600">{{ $product->category ?? '—' }}</td>
-                            <td class="px-5 py-3 text-right font-semibold whitespace-nowrap tabular-nums">{{ $product->formattedPrice() }}</td>
+                            <td class="px-5 py-3 text-right whitespace-nowrap tabular-nums">
+                                <span class="font-semibold">{{ $product->formattedPrice() }}</span>
+                                @if ($product->hasWholesalePrice())
+                                    <span class="block text-xs font-semibold text-amber-700">{{ $product->formattedWholesalePrice() }} wholesale{{ $product->wholesale_min_quantity > 1 ? ' · '.$product->wholesale_min_quantity.'+' : '' }}</span>
+                                @endif
+                            </td>
                             <td class="px-5 py-3"><x-stock-badge :product="$product" /></td>
                             <td class="px-5 py-3">
                                 @if ($product->is_active)

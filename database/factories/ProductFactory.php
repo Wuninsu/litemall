@@ -38,6 +38,18 @@ class ProductFactory extends Factory
     }
 
     /**
+     * @param  int  $pesewas  wholesale price in pesewas
+     * @param  int  $minimumQuantity  units needed before the wholesale price applies
+     */
+    public function wholesale(int $pesewas, int $minimumQuantity = 1): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'wholesale_price_pesewas' => $pesewas,
+            'wholesale_min_quantity' => $minimumQuantity,
+        ]);
+    }
+
+    /**
      * @param  int  $pesewas  price in pesewas, e.g. 120050 for GH₵ 1,200.50
      */
     public function priced(int $pesewas): static

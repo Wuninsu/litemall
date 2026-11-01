@@ -60,7 +60,7 @@
                                 <p class="text-xs text-slate-500">{{ $sale->lines_count }} {{ Str::plural('item', $sale->lines_count) }} · {{ $sale->seller->name }}</p>
                             </td>
                             <td class="px-5 py-3 whitespace-nowrap text-slate-600">{{ $sale->sold_at->format('j M Y, g:i a') }}</td>
-                            <td class="px-5 py-3">{{ $sale->customer?->name ?? 'Walk-in' }}</td>
+                            <td class="px-5 py-3">{{ $sale->customer?->name ?? 'Walk-in' }}@if ($sale->price_tier?->value === 'wholesale') <span class="ml-1 rounded bg-amber-100 px-1.5 py-px text-[10.5px] font-bold text-amber-800">Wholesale</span>@endif</td>
                             <td class="px-5 py-3 text-right font-semibold whitespace-nowrap tabular-nums">{{ $sale->money('total') }}</td>
                             <td class="px-5 py-3 text-right whitespace-nowrap tabular-nums text-slate-600">{{ $sale->money('paid') }}</td>
                             <td class="px-5 py-3 text-right font-semibold whitespace-nowrap tabular-nums {{ $sale->balancePesewas() > 0 ? 'text-amber-700' : 'text-slate-400' }}">{{ $sale->money('balance') }}</td>

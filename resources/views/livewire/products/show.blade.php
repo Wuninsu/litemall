@@ -53,8 +53,11 @@
 
             <dl class="grid gap-4 sm:grid-cols-3">
                 <div class="rounded-2xl border border-slate-200/80 bg-white p-5">
-                    <dt class="text-[13px] font-semibold text-slate-500">Selling price</dt>
+                    <dt class="text-[13px] font-semibold text-slate-500">Retail price</dt>
                     <dd class="mt-1 text-2xl font-extrabold tabular-nums">{{ $product->formattedPrice() }}</dd>
+                    @if ($product->hasWholesalePrice())
+                        <dd class="mt-1 text-sm font-semibold text-amber-700">Wholesale {{ $product->formattedWholesalePrice() }}{{ $product->wholesale_min_quantity > 1 ? ' from '.$product->wholesale_min_quantity.' units' : '' }}</dd>
+                    @endif
                 </div>
                 <div class="rounded-2xl border border-slate-200/80 bg-white p-5">
                     <dt class="text-[13px] font-semibold text-slate-500">In stock</dt>

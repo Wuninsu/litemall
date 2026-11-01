@@ -28,6 +28,8 @@ class CustomerForm extends Form
 
     public string $notes = '';
 
+    public bool $isWholesale = false;
+
     public function setCustomer(Customer $customer): void
     {
         $this->customer = $customer;
@@ -36,6 +38,7 @@ class CustomerForm extends Form
         $this->email = (string) $customer->email;
         $this->address = (string) $customer->address;
         $this->notes = (string) $customer->notes;
+        $this->isWholesale = (bool) $customer->is_wholesale;
     }
 
     /**
@@ -58,6 +61,7 @@ class CustomerForm extends Form
             'email' => ['nullable', 'string', 'email', 'max:255'],
             'address' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string', 'max:2000'],
+            'isWholesale' => ['boolean'],
         ];
     }
 
@@ -72,7 +76,7 @@ class CustomerForm extends Form
     }
 
     /**
-     * @return array{name: string, phone: string, email: string|null, address: string|null, notes: string|null}
+     * @return array{name: string, phone: string, email: string|null, address: string|null, notes: string|null, is_wholesale: bool}
      */
     public function payload(): array
     {
@@ -91,6 +95,7 @@ class CustomerForm extends Form
             'email' => $validated['email'] ?? null,
             'address' => $validated['address'] ?? null,
             'notes' => $validated['notes'] ?? null,
+            'is_wholesale' => (bool) ($validated['isWholesale'] ?? false),
         ];
     }
 }

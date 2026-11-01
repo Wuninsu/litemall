@@ -11,15 +11,16 @@ Keep a register of the people the shop sells to, so future sales and instalment 
 | Action | Admin | Cashier |
 |---|---|---|
 | View / search the list | ✓ | ✓ |
-| Add a customer | ✓ | ✓ |
+| Add a customer (Customers page, or "New" on the POS) | ✓ | ✓ |
 | Edit a customer | ✓ | ✓ |
 | Deactivate / reactivate | ✓ | — |
+| Mark as a wholesale customer | ✓ | ✓ |
 
 Enforced by `App\Policies\CustomerPolicy` (`viewAny`, `create`, `update`, `changeStatus`), checked on the route and in every Livewire action.
 
 ## Data
 
-Table `customers` (UUID key): `name`, `phone` (unique, stored `+233XXXXXXXXX`), `email`, `address`, `notes`, `is_active`, `created_by` → `users.id`. Full column list in [DATABASE_SCHEMA.md](../DATABASE_SCHEMA.md).
+Table `customers` (UUID key): `name`, `phone` (unique, stored `+233XXXXXXXXX`), `email`, `address`, `notes`, `is_wholesale`, `is_active`, `created_by` → `users.id`. Full column list in [DATABASE_SCHEMA.md](../DATABASE_SCHEMA.md).
 
 ## Rules
 

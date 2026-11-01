@@ -235,3 +235,15 @@ Purpose: database session driver storage (`SESSION_DRIVER=database`).
 | failed_at | timestamp | no | CURRENT_TIMESTAMP | |
 
 Composite index: (`connection`, `queue`, `failed_at`).
+
+## Migration `2026_11_01_211833_add_wholesale_pricing`
+
+Adds (ADR-0019):
+
+| Table | Column | Type | Null | Default | Notes |
+|---|---|---|---|---|---|
+| products | wholesale_price_pesewas | bigint unsigned | yes | null | optional; > 0 and ≤ `price_pesewas` (enforced in app) |
+| products | wholesale_min_quantity | int unsigned | no | `1` | line quantity needed before the wholesale price applies |
+| customers | is_wholesale | boolean | no | `false` | choosing the customer on the POS switches to wholesale prices |
+| sales | price_tier | varchar(10) | no | `'retail'` | `retail` or `wholesale` (`PriceTier`) — the mode the sale was rung up in |
+| sale_lines | price_tier | varchar(10) | no | `'retail'` | the price actually charged on this line (a wholesale sale can have retail lines) |

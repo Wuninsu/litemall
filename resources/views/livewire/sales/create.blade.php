@@ -1,219 +1,456 @@
-<div class="grid items-start gap-6 xl:grid-cols-[1fr_400px]">
-    {{-- Left: products and cart --}}
-    <div class="grid gap-5">
-        <div class="rounded-2xl border border-slate-200/80 bg-white p-5">
-            <label for="product-search" class="text-[13px] font-semibold text-slate-700">Add products</label>
-            <div class="relative mt-1.5">
-                <x-icon name="search" class="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-slate-400" />
-                <input wire:model.live.debounce.250ms="productSearch" id="product-search" type="search" autocomplete="off" autofocus
-                       placeholder="Search product name or SKU"
-                       class="h-11 w-full rounded-xl border border-slate-300 bg-white pr-3 pl-10 text-sm placeholder:text-slate-400 focus:border-teal-600 focus:ring-4 focus:ring-teal-600/15 focus:outline-none">
+<div class="h-full overflow-y-auto lg:grid lg:grid-cols-[minmax(0,1fr)_420px] lg:overflow-hidden xl:grid-cols-[minmax(0,1fr)_460px]"
+     x-data
+     x-on:keydown.window.slash="if (! ['INPUT', 'TEXTAREA', 'SELECT'].includes($event.target.tagName)) { $event.preventDefault(); $refs.search.focus() }">
+
+    {{-- ===================== Products ===================== --}}
+    <section class="flex min-h-0 flex-col lg:h-full" aria-label="Products">
+        <div class="shrink-0 space-y-3 border-b border-slate-200/80 bg-white px-4 py-3 sm:px-5">
+            <div class="relative">
+                <x-icon name="search" class="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-slate-400" />
+                <input x-ref="search" wire:model.live.debounce.200ms="productSearch" wire:keydown.enter.prevent="addFirstMatch"
+                       id="product-search" type="search" autocomplete="off" autofocus
+                       placeholder="Search or scan a product…  (press / to focus, Enter to add)"
+                       class="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 pr-4 pl-12 text-base placeholder:text-slate-400 focus:border-teal-600 focus:bg-white focus:ring-4 focus:ring-teal-600/15 focus:outline-none">
             </div>
 
-            @if ($productSearch !== '')
-                <ul class="mt-2 divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200">
-                    @forelse ($this->productResults as $result)
-                        <li wire:key="result-{{ $result->id }}">
-                            <button type="button" wire:click="addProduct('{{ $result->id }}')" @disabled($result->stock_quantity < 1)
-                                    class="flex w-full items-center gap-3 px-3 py-2.5 text-left transition hover:bg-teal-50/60 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent">
-                                <span class="grid size-10 shrink-0 place-items-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50 text-slate-300">
-                                    @if ($result->imageUrl())
-                                        <img src="{{ $result->imageUrl() }}" alt="" class="size-full object-cover">
-                                    @else
-                                        <x-icon name="box" class="size-4" />
-                                    @endif
-                                </span>
-                                <span class="min-w-0 flex-1">
-                                    <span class="block truncate text-sm font-semibold">{{ $result->name }}</span>
-                                    <span class="block text-xs text-slate-500">{{ $result->sku ?? 'No SKU' }} · {{ $result->stock_quantity }} in stock</span>
-                                </span>
-                                <span class="text-sm font-bold tabular-nums">{{ $result->formattedPrice() }}</span>
-                                <x-icon name="plus" class="size-4 text-teal-700" />
-                            </button>
-                        </li>
-                    @empty
-                        <li class="px-3 py-4 text-center text-sm text-slate-500">No active products match “{{ $productSearch }}”.</li>
-                    @endforelse
-                </ul>
+            @if ($this->categories !== [])
+                <div class="-mx-1 flex gap-2 overflow-x-auto px-1 pb-0.5" role="tablist" aria-label="Categories">
+                    @foreach (['' => 'All', ...array_combine($this->categories, $this->categories)] as $value => $label)
+                        <button type="button" wire:click="$set('category', @js($value))" role="tab" aria-selected="{{ $category === $value ? 'true' : 'false' }}"
+                                @class([
+                                    'shrink-0 rounded-full px-4 py-2 text-sm font-bold whitespace-nowrap transition',
+                                    'bg-brand text-white shadow-sm' => $category === $value,
+                                    'bg-white text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50 hover:ring-slate-400' => $category !== $value,
+                                ])>{{ $label }}</button>
+                    @endforeach
+                </div>
             @endif
         </div>
 
-        <div class="overflow-hidden rounded-2xl border border-slate-200/80 bg-white">
-            <div class="flex items-center justify-between border-b border-slate-100 px-5 py-3">
-                <h2 class="font-bold">Items</h2>
-                <span class="text-[13px] text-slate-500">{{ count($cart) }} {{ Str::plural('product', count($cart)) }}</span>
-            </div>
+        <div class="min-h-0 flex-1 bg-slate-100 p-4 sm:p-5 lg:overflow-y-auto">
+            @if ($this->productGrid->isEmpty())
+                <div class="grid h-full place-items-center py-16 text-center text-slate-600">
+                    <div class="grid justify-items-center gap-2">
+                        <x-icon name="box" class="size-10 text-slate-400" />
+                        <p class="font-semibold">No products match{{ $productSearch !== '' ? ' “'.$productSearch.'”' : '' }}.</p>
+                    </div>
+                </div>
+            @else
+                @php
+                    // Solid colours for products without a photo, picked by category so similar items look alike.
+                    $placeholderColours = ['bg-teal-600', 'bg-sky-600', 'bg-violet-600', 'bg-amber-500', 'bg-rose-500', 'bg-emerald-600', 'bg-indigo-600', 'bg-orange-500'];
+                @endphp
+                <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
+                    @foreach ($this->productGrid as $product)
+                        @php
+                            $inCart = (int) ($cart[$product->id] ?? 0);
+                            $soldOut = $product->stock_quantity < 1;
+                            $placeholder = $placeholderColours[crc32($product->category ?? $product->name) % count($placeholderColours)];
+                        @endphp
+                        <button type="button" wire:key="tile-{{ $product->id }}" wire:click="addProduct('{{ $product->id }}')" @disabled($soldOut)
+                                @class([
+                                    'group relative flex flex-col overflow-hidden rounded-2xl bg-white text-left shadow-sm transition focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-600/30',
+                                    'ring-2 ring-teal-500' => $inCart > 0,
+                                    'ring-1 ring-slate-200 hover:-translate-y-0.5 hover:shadow-lg hover:ring-teal-400 active:translate-y-0' => $inCart === 0 && ! $soldOut,
+                                    'cursor-not-allowed opacity-55 ring-1 ring-slate-200 grayscale' => $soldOut,
+                                ])>
+                            <span class="relative block aspect-[4/3] overflow-hidden bg-slate-200">
+                                @if ($product->imageUrl())
+                                    <img src="{{ $product->imageUrl() }}" alt="" class="size-full object-cover transition group-hover:scale-105" loading="lazy">
+                                @else
+                                    <span class="grid size-full place-items-center {{ $placeholder }}">
+                                        <span class="px-3 text-center text-4xl font-extrabold text-white/90">{{ str($product->name)->squish()->explode(' ')->take(2)->map(fn ($word) => mb_strtoupper(mb_substr($word, 0, 1)))->implode('') }}</span>
+                                    </span>
+                                @endif
 
-            @error('lines') <p class="border-b border-red-100 bg-red-50 px-5 py-2.5 text-[13px] text-red-700">{{ $message }}</p> @enderror
-            @error('cart') <p class="border-b border-red-100 bg-red-50 px-5 py-2.5 text-[13px] text-red-700">{{ $message }}</p> @enderror
+                                @if ($inCart > 0)
+                                    <span class="absolute top-2 right-2 grid min-w-8 place-items-center rounded-full bg-teal-700 px-2 py-1 text-sm font-extrabold text-white shadow-lg ring-2 ring-white">{{ $inCart }}</span>
+                                @endif
+
+                                @if ($soldOut)
+                                    <span class="absolute inset-x-0 bottom-0 bg-red-600 py-1.5 text-center text-xs font-bold text-white">Out of stock</span>
+                                @elseif ($product->stockLevel() === 'low')
+                                    <span class="absolute bottom-2 left-2 rounded-full bg-amber-400 px-2.5 py-0.5 text-xs font-bold text-amber-950 shadow">Only {{ $product->stock_quantity }} left</span>
+                                @endif
+                            </span>
+
+                            <span class="flex flex-1 flex-col gap-2 p-3.5">
+                                <span class="line-clamp-2 text-[15px] leading-snug font-bold text-slate-900">{{ $product->name }}</span>
+                                <span class="mt-auto flex items-end justify-between gap-2">
+                                    @if ($priceTier === 'wholesale' && $product->hasWholesalePrice())
+                                        <span class="grid">
+                                            <span class="text-sm font-extrabold text-amber-700 tabular-nums">{{ $product->formattedWholesalePrice() }}</span>
+                                            <span class="text-xs text-slate-500 tabular-nums">
+                                                <s>{{ $product->formattedPrice() }}</s>{{ $product->wholesale_min_quantity > 1 ? ' · from '.$product->wholesale_min_quantity : '' }}
+                                            </span>
+                                        </span>
+                                    @else
+                                        <span class="text-sm font-extrabold text-slate-900 tabular-nums">{{ $product->formattedPrice() }}</span>
+                                    @endif
+                                    @if (! $soldOut && $product->stockLevel() === 'in')
+                                        <span class="rounded-md bg-slate-100 px-1.5 py-0.5 text-xs font-semibold text-slate-600 tabular-nums">{{ $product->stock_quantity }} left</span>
+                                    @endif
+                                </span>
+                            </span>
+                        </button>
+                    @endforeach
+                </div>
+                @if ($this->productGrid->count() >= App\Livewire\Sales\Create::GRID_LIMIT)
+                    <p class="mt-4 text-center text-sm font-semibold text-slate-600">Showing the first {{ App\Livewire\Sales\Create::GRID_LIMIT }} products — search to find others.</p>
+                @endif
+            @endif
+        </div>
+    </section>
+
+    {{-- ===================== Cart ===================== --}}
+    <aside class="flex min-h-0 flex-col border-l border-slate-200/80 bg-white lg:h-full" aria-label="Current sale">
+        {{-- Customer --}}
+        <div class="shrink-0 border-b border-slate-100 p-4" x-data="{ open: false }" x-on:click.outside="open = false">
+            @if ($this->customer)
+                <div class="flex items-center gap-3 rounded-2xl bg-teal-50 p-3 ring-1 ring-teal-200">
+                    <span class="grid size-10 shrink-0 place-items-center rounded-full bg-teal-700 text-white"><x-icon name="people" class="size-5" /></span>
+                    <div class="min-w-0 flex-1 text-sm">
+                        <p class="truncate font-bold">{{ $this->customer->name }}@if ($this->customer->is_wholesale) <span class="ml-1 rounded bg-amber-100 px-1.5 py-px align-middle text-[10.5px] font-bold text-amber-800">Wholesale</span>@endif</p>
+                        <p class="text-[13px] text-slate-600">{{ $this->customer->formattedPhone() }}
+                            @if ($this->customer->outstandingPesewas() > 0)
+                                · <span class="font-semibold text-amber-700">owes {{ App\Support\Money::format($this->customer->outstandingPesewas()) }}</span>
+                            @endif
+                        </p>
+                    </div>
+                    <button type="button" wire:click="clearCustomer" class="rounded-lg px-2 py-1 text-xs font-semibold text-slate-500 hover:bg-white hover:text-slate-800" title="Sell to a walk-in customer instead">
+                        Walk-in
+                    </button>
+                </div>
+            @else
+                {{-- No customer chosen: the sale is a walk-in sale (must be paid in full). --}}
+                <div class="flex items-center gap-3 rounded-2xl bg-slate-50 p-3 ring-1 ring-slate-200">
+                    <span class="grid size-10 shrink-0 place-items-center rounded-full bg-slate-200 text-slate-600"><x-icon name="people" class="size-5" /></span>
+                    <div class="min-w-0 flex-1 text-sm">
+                        <p class="font-bold">Walk-in customer</p>
+                        <p class="text-[13px] text-slate-500">Pays in full now</p>
+                    </div>
+                    <button type="button" x-on:click="open = ! open; $nextTick(() => $refs.customerSearch?.focus())"
+                            class="rounded-lg bg-white px-2.5 py-1.5 text-xs font-bold text-teal-700 ring-1 ring-slate-200 hover:ring-teal-300">Choose</button>
+                    <button type="button" wire:click="openNewCustomer"
+                            class="flex items-center gap-1 rounded-lg bg-teal-700 px-2.5 py-1.5 text-xs font-bold text-white hover:bg-teal-800">
+                        <x-icon name="plus" class="size-3.5" /> New
+                    </button>
+                </div>
+
+                <div x-show="open" x-cloak x-transition.opacity class="relative">
+                    <div class="absolute inset-x-0 top-2 z-20 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
+                        <input x-ref="customerSearch" wire:model.live.debounce.250ms="customerSearch" id="customer-search" type="search" autocomplete="off"
+                               placeholder="Name or phone number" aria-label="Search customers"
+                               class="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm focus:border-teal-600 focus:bg-white focus:ring-4 focus:ring-teal-600/15 focus:outline-none">
+                        <ul class="mt-1 max-h-64 overflow-y-auto">
+                            @forelse ($this->customerResults as $result)
+                                <li wire:key="customer-{{ $result->id }}">
+                                    <button type="button" wire:click="selectCustomer('{{ $result->id }}')" x-on:click="open = false"
+                                            class="flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left text-sm hover:bg-teal-50">
+                                        <span>
+                                            <span class="block font-semibold">{{ $result->name }}@if ($result->is_wholesale) <span class="ml-1 rounded bg-amber-100 px-1.5 py-px text-[10.5px] font-bold text-amber-800">Wholesale</span>@endif</span>
+                                            <span class="block text-xs text-slate-500">{{ $result->formattedPhone() }}</span>
+                                        </span>
+                                        @if ($result->outstandingPesewas() > 0)
+                                            <span class="text-xs font-semibold text-amber-700">owes {{ App\Support\Money::format($result->outstandingPesewas()) }}</span>
+                                        @endif
+                                    </button>
+                                </li>
+                            @empty
+                                <li class="px-3 py-3 text-center text-sm text-slate-500">
+                                    {{ $customerSearch === '' ? 'Start typing to find a customer.' : 'No active customer found.' }}
+                                </li>
+                            @endforelse
+                        </ul>
+                        <button type="button" wire:click="openNewCustomer" x-on:click="open = false"
+                                class="mt-1 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-teal-300 px-3 py-2 text-sm font-bold text-teal-700 hover:bg-teal-50">
+                            <x-icon name="plus" class="size-4" />
+                            New customer{{ $customerSearch !== '' ? ' “'.$customerSearch.'”' : '' }}
+                        </button>
+                    </div>
+                </div>
+            @endif
+        </div>
+
+        {{-- Items, discount, payment (scrolls) --}}
+        <div class="min-h-0 flex-1 overflow-y-auto">
+            <div class="flex items-center justify-between gap-2 px-4 pt-3 pb-1">
+                <h2 class="text-sm font-bold">Current sale <span class="font-semibold text-slate-400">· {{ $this->summary['items'] }} {{ Str::plural('item', $this->summary['items']) }}</span></h2>
+                <div class="ml-auto inline-flex rounded-lg bg-slate-100 p-0.5 text-xs font-bold" role="radiogroup" aria-label="Price list">
+                    @foreach (App\Enums\PriceTier::cases() as $tierOption)
+                        <button type="button" wire:click="setPriceTier('{{ $tierOption->value }}')" role="radio" aria-checked="{{ $priceTier === $tierOption->value ? 'true' : 'false' }}"
+                                @class([
+                                    'rounded-md px-2.5 py-1 transition',
+                                    'bg-white text-slate-900 shadow-sm' => $priceTier === $tierOption->value && $tierOption->value === 'retail',
+                                    'bg-amber-500 text-white shadow-sm' => $priceTier === $tierOption->value && $tierOption->value === 'wholesale',
+                                    'text-slate-500 hover:text-slate-800' => $priceTier !== $tierOption->value,
+                                ])>{{ $tierOption->label() }}</button>
+                    @endforeach
+                </div>
+                @if ($cart !== [])
+                    <button type="button" wire:click="clearCart" wire:confirm="Remove all items from this sale?" class="text-xs font-semibold text-slate-400 hover:text-red-600">Clear</button>
+                @endif
+            </div>
+            @if ($priceTier === 'wholesale')
+                <p class="mx-4 mt-1 rounded-lg bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800 ring-1 ring-amber-200">
+                    Wholesale prices apply where set and the minimum quantity is reached; other items use retail.
+                </p>
+            @endif
 
             @if ($this->cartProducts->isEmpty())
-                <div class="grid justify-items-center gap-2 px-5 py-12 text-center text-slate-500">
-                    <x-icon name="cart" class="size-8 text-slate-300" />
-                    <p class="text-sm">Search above and add products to start the sale.</p>
+                <div class="grid justify-items-center gap-2 px-4 py-10 text-center text-slate-400">
+                    <x-icon name="cart" class="size-10 text-slate-300" />
+                    <p class="text-sm">Tap a product to add it.</p>
                 </div>
             @else
-                <div class="overflow-x-auto">
-                    <table class="min-w-full text-sm">
-                        <thead>
-                            <tr class="text-left text-[11.5px] font-bold tracking-wider text-slate-400 uppercase">
-                                <th class="px-5 py-2.5">Product</th>
-                                <th class="px-3 py-2.5 text-right">Price</th>
-                                <th class="px-3 py-2.5">Qty</th>
-                                <th class="px-3 py-2.5 text-right">Total</th>
-                                <th class="px-3 py-2.5"><span class="sr-only">Remove</span></th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100">
-                            @foreach ($this->cartProducts as $product)
-                                @php($quantity = max(0, (int) ($cart[$product->id] ?? 0)))
-                                <tr wire:key="line-{{ $product->id }}">
-                                    <td class="px-5 py-3">
-                                        <p class="font-semibold">{{ $product->name }}</p>
-                                        <p class="text-xs text-slate-500">{{ $product->stock_quantity }} in stock</p>
-                                        @error('cart.'.$product->id) <p class="text-xs text-red-600">{{ $message }}</p> @enderror
-                                    </td>
-                                    <td class="px-3 py-3 text-right whitespace-nowrap tabular-nums">{{ $product->formattedPrice() }}</td>
-                                    <td class="px-3 py-3">
-                                        <input wire:model.live.debounce.300ms="cart.{{ $product->id }}" type="number" min="1" max="{{ max(1, $product->stock_quantity) }}" step="1"
-                                               aria-label="Quantity of {{ $product->name }}"
-                                               class="h-9 w-20 rounded-lg border border-slate-300 px-2 text-sm tabular-nums focus:border-teal-600 focus:ring-4 focus:ring-teal-600/15 focus:outline-none">
-                                    </td>
-                                    <td class="px-3 py-3 text-right font-semibold whitespace-nowrap tabular-nums">{{ App\Support\Money::format($product->price_pesewas * $quantity) }}</td>
-                                    <td class="px-3 py-3 text-right">
-                                        <x-button variant="subtle" size="icon" icon="x" wire:click="removeLine('{{ $product->id }}')" aria-label="Remove {{ $product->name }}" title="Remove" />
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
+                <ul class="divide-y divide-slate-100 px-4">
+                    @foreach ($this->cartProducts as $product)
+                        @php $quantity = max(0, (int) ($cart[$product->id] ?? 0)); @endphp
+                        @php $linePrice = $this->unitPrice($product, $quantity); @endphp
+                        <li wire:key="line-{{ $product->id }}" class="flex items-center gap-3 py-3">
+                            <div class="min-w-0 flex-1">
+                                <p class="truncate text-sm font-semibold">{{ $product->name }}</p>
+                                <p class="text-xs text-slate-500 tabular-nums">
+                                    {{ App\Support\Money::format($linePrice['pesewas']) }} each
+                                    @if ($linePrice['tier'] === App\Enums\PriceTier::Wholesale)
+                                        <span class="ml-1 rounded bg-amber-100 px-1.5 py-px text-[10.5px] font-bold text-amber-800">Wholesale</span>
+                                    @elseif ($priceTier === 'wholesale' && $product->hasWholesalePrice())
+                                        <span class="ml-1 text-[11px] text-amber-700">wholesale from {{ $product->wholesale_min_quantity }}</span>
+                                    @endif
+                                </p>
+                                @error('cart.'.$product->id) <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+                            </div>
+                            <div class="flex items-center rounded-xl border border-slate-200">
+                                <button type="button" wire:click="decrement('{{ $product->id }}')" class="grid size-8 place-items-center text-slate-500 hover:text-slate-900" aria-label="One less {{ $product->name }}">
+                                    <x-icon name="minus" class="size-4" />
+                                </button>
+                                <input wire:model.live.debounce.400ms="cart.{{ $product->id }}" type="number" min="1" max="{{ max(1, $product->stock_quantity) }}" inputmode="numeric"
+                                       aria-label="Quantity of {{ $product->name }}"
+                                       class="h-8 w-10 border-0 bg-transparent p-0 text-center text-sm font-bold tabular-nums [appearance:textfield] focus:ring-0 [&::-webkit-inner-spin-button]:appearance-none">
+                                <button type="button" wire:click="increment('{{ $product->id }}')" @disabled($quantity >= $product->stock_quantity)
+                                        class="grid size-8 place-items-center text-slate-500 hover:text-slate-900 disabled:opacity-30" aria-label="One more {{ $product->name }}">
+                                    <x-icon name="plus" class="size-4" />
+                                </button>
+                            </div>
+                            <p class="w-24 text-right text-sm font-bold tabular-nums">{{ App\Support\Money::format($linePrice['pesewas'] * $quantity) }}</p>
+                        </li>
+                    @endforeach
+                </ul>
             @endif
-        </div>
-    </div>
 
-    {{-- Right: customer, discount, payment, totals --}}
-    <form wire:submit="complete" class="grid gap-5 xl:sticky xl:top-20">
-        {{-- Customer --}}
-        <section class="rounded-2xl border border-slate-200/80 bg-white p-5">
-            <h2 class="mb-3 font-bold">Customer</h2>
-
-            @if ($this->customer)
-                <div class="flex items-start gap-3 rounded-xl border border-teal-200 bg-teal-50/60 p-3">
-                    <span class="grid size-9 shrink-0 place-items-center rounded-full bg-teal-700 text-xs font-extrabold text-white"><x-icon name="people" class="size-4" /></span>
-                    <div class="min-w-0 flex-1 text-sm">
-                        <p class="font-bold">{{ $this->customer->name }}</p>
-                        <p class="text-[13px] text-slate-600">{{ $this->customer->formattedPhone() }}</p>
-                        @if ($this->customer->outstandingPesewas() > 0)
-                            <p class="mt-1 text-[13px] font-semibold text-amber-700">Already owes {{ App\Support\Money::format($this->customer->outstandingPesewas()) }}</p>
+            {{-- Discount --}}
+            <div class="border-t border-slate-100 px-4 py-3">
+                @if (! $showDiscount && trim($discountValue) === '')
+                    <button type="button" wire:click="$set('showDiscount', true)" class="flex items-center gap-2 text-sm font-semibold text-teal-700 hover:text-teal-800">
+                        <x-icon name="tag" class="size-4" /> Add discount
+                    </button>
+                @else
+                    <div class="grid gap-2">
+                        <div class="flex items-center justify-between">
+                            <span class="flex items-center gap-2 text-sm font-bold"><x-icon name="tag" class="size-4 text-teal-700" /> Discount</span>
+                            <div class="inline-flex rounded-lg border border-slate-200 p-0.5 text-xs font-bold" role="radiogroup" aria-label="Discount type">
+                                <label class="cursor-pointer rounded-md px-2.5 py-1 has-checked:bg-teal-700 has-checked:text-white">
+                                    <input type="radio" wire:model.live="discountType" value="amount" class="sr-only"> GH₵
+                                </label>
+                                <label class="cursor-pointer rounded-md px-2.5 py-1 has-checked:bg-teal-700 has-checked:text-white">
+                                    <input type="radio" wire:model.live="discountType" value="percent" class="sr-only"> %
+                                </label>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-[120px_1fr] gap-2">
+                            <input wire:model.live.debounce.400ms="discountValue" id="discount-value" inputmode="decimal" autocomplete="off" placeholder="{{ $discountType === 'percent' ? '0 %' : '0.00' }}"
+                                   aria-label="{{ $discountType === 'percent' ? 'Discount percent' : 'Discount amount in cedis' }}"
+                                   class="h-10 rounded-xl border border-slate-300 px-3 text-sm tabular-nums focus:border-teal-600 focus:ring-4 focus:ring-teal-600/15 focus:outline-none">
+                            <input wire:model="discountReason" id="discount-reason" placeholder="Reason (optional)" aria-label="Discount reason"
+                                   class="h-10 rounded-xl border border-slate-300 px-3 text-sm focus:border-teal-600 focus:ring-4 focus:ring-teal-600/15 focus:outline-none">
+                        </div>
+                        @error('discountValue') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+                        @if ($this->summary['discountError'])
+                            <p class="text-xs text-red-600">{{ $this->summary['discountError'] }}</p>
+                        @elseif (! auth()->user()->isAdmin())
+                            <p class="text-xs text-slate-500">Cashiers can give up to {{ rtrim(rtrim(number_format($cashierLimit, 2), '0'), '.') }}%.</p>
                         @endif
                     </div>
-                    <x-button variant="subtle" size="sm" wire:click="clearCustomer" :loading="false">Change</x-button>
-                </div>
-            @else
-                <div class="relative">
-                    <input wire:model.live.debounce.250ms="customerSearch" id="customer-search" type="search" autocomplete="off" placeholder="Search name or phone (optional)"
-                           aria-label="Search customers"
-                           class="h-11 w-full rounded-xl border border-slate-300 bg-white px-3.5 text-sm placeholder:text-slate-400 focus:border-teal-600 focus:ring-4 focus:ring-teal-600/15 focus:outline-none">
-                </div>
-                @if ($customerSearch !== '')
-                    <ul class="mt-2 divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200">
-                        @forelse ($this->customerResults as $result)
-                            <li wire:key="customer-{{ $result->id }}">
-                                <button type="button" wire:click="selectCustomer('{{ $result->id }}')" class="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left text-sm hover:bg-teal-50/60">
-                                    <span>
-                                        <span class="block font-semibold">{{ $result->name }}</span>
-                                        <span class="block text-xs text-slate-500">{{ $result->formattedPhone() }}</span>
-                                    </span>
-                                    @if ($result->outstandingPesewas() > 0)
-                                        <span class="text-xs font-semibold text-amber-700">owes {{ App\Support\Money::format($result->outstandingPesewas()) }}</span>
-                                    @endif
-                                </button>
-                            </li>
-                        @empty
-                            <li class="px-3 py-3 text-center text-sm text-slate-500">No active customer found. <a href="{{ route('customers.index') }}" wire:navigate class="font-semibold text-teal-700 underline">Add customer</a></li>
-                        @endforelse
-                    </ul>
                 @endif
-                <p class="mt-2 text-[12.5px] text-slate-500">Leave empty for a walk-in sale paid in full.</p>
-            @endif
-            @error('customer') <p class="mt-2 text-[13px] text-red-600">{{ $message }}</p> @enderror
-        </section>
+            </div>
 
-        {{-- Discount --}}
-        <section class="rounded-2xl border border-slate-200/80 bg-white p-5">
-            <div class="mb-3 flex items-center justify-between">
-                <h2 class="font-bold">Discount</h2>
-                <div class="inline-flex rounded-lg border border-slate-200 p-0.5 text-[13px] font-semibold" role="radiogroup" aria-label="Discount type">
-                    <label class="cursor-pointer rounded-md px-2.5 py-1 has-checked:bg-teal-700 has-checked:text-white">
-                        <input type="radio" wire:model.live="discountType" value="amount" class="sr-only"> GH₵
-                    </label>
-                    <label class="cursor-pointer rounded-md px-2.5 py-1 has-checked:bg-teal-700 has-checked:text-white">
-                        <input type="radio" wire:model.live="discountType" value="percent" class="sr-only"> %
-                    </label>
-                </div>
-            </div>
-            <div class="grid gap-3">
-                <x-input wire:model.live.debounce.400ms="discountValue" id="discount-value" :label="$discountType === 'percent' ? 'Discount (%)' : 'Discount (GH₵)'"
-                         :prefix="$discountType === 'percent' ? null : 'GH₵'" placeholder="0" inputmode="decimal" autocomplete="off" error="discountValue" />
-                @if ($this->summary['discountError'])
-                    <p class="-mt-1 text-[13px] text-red-600">{{ $this->summary['discountError'] }}</p>
-                @endif
-                @error('discount') <p class="-mt-1 text-[13px] text-red-600">{{ $message }}</p> @enderror
-                @if (! auth()->user()->isAdmin())
-                    <p class="-mt-1 text-[12.5px] text-slate-500">Cashiers can give up to {{ rtrim(rtrim(number_format($cashierLimit, 2), '0'), '.') }}%.</p>
-                @endif
-                <x-input wire:model="discountReason" id="discount-reason" label="Reason (optional)" placeholder="e.g. Loyal customer" />
-            </div>
-        </section>
+        </div>
 
-        {{-- Payment now --}}
-        <section class="rounded-2xl border border-slate-200/80 bg-white p-5">
-            <div class="mb-3 flex items-center justify-between">
-                <h2 class="font-bold">Payment now</h2>
-                <x-button variant="secondary" size="sm" wire:click="payInFull" :loading="false">Pay in full</x-button>
-            </div>
-            <div class="grid gap-3">
-                <x-input wire:model.live.debounce.400ms="paymentAmount" id="payment-amount" label="Amount paid" prefix="GH₵" placeholder="0.00" inputmode="decimal" autocomplete="off" />
-                @error('payment') <p class="-mt-1 text-[13px] text-red-600">{{ $message }}</p> @enderror
-                <div class="grid gap-1.5">
-                    <label for="payment-method" class="text-[13px] font-semibold text-slate-700">Method</label>
-                    <select wire:model.live="paymentMethod" id="payment-method" class="h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm focus:border-teal-600 focus:ring-4 focus:ring-teal-600/15 focus:outline-none">
-                        @foreach ($methods as $method)
-                            <option value="{{ $method->value }}">{{ $method->label() }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                @if (App\Enums\PaymentMethod::tryFrom($paymentMethod)?->expectsReference())
-                    <x-input wire:model="paymentReference" id="payment-reference" label="Transaction reference (optional)" placeholder="e.g. MoMo transaction ID" />
-                @endif
-            </div>
-        </section>
-
-        {{-- Totals --}}
-        <section class="rounded-2xl bg-brand p-5 text-teal-50">
-            <dl class="grid gap-2 text-sm tabular-nums">
-                <div class="flex justify-between"><dt class="text-teal-100/75">Subtotal</dt><dd>{{ App\Support\Money::format($this->summary['subtotal']) }}</dd></div>
+        {{-- Totals + charge (pinned) --}}
+        <div class="shrink-0 border-t border-slate-200 bg-slate-50 p-4">
+            <dl class="grid gap-1 text-sm tabular-nums">
+                <div class="flex justify-between text-slate-500"><dt>Subtotal</dt><dd>{{ App\Support\Money::format($this->summary['subtotal']) }}</dd></div>
                 @if ($this->summary['discount'] > 0)
-                    <div class="flex justify-between"><dt class="text-teal-100/75">Discount</dt><dd>−{{ App\Support\Money::format($this->summary['discount']) }}</dd></div>
+                    <div class="flex justify-between text-slate-500"><dt>Discount</dt><dd>−{{ App\Support\Money::format($this->summary['discount']) }}</dd></div>
                 @endif
-                <div class="flex justify-between border-t border-white/15 pt-2 text-lg font-extrabold text-white"><dt>Total</dt><dd>{{ App\Support\Money::format($this->summary['total']) }}</dd></div>
-                <div class="flex justify-between"><dt class="text-teal-100/75">Paid now</dt><dd>{{ App\Support\Money::format($this->summary['paid']) }}</dd></div>
-                <div class="flex justify-between font-bold {{ $this->summary['balance'] > 0 ? 'text-amber-300' : 'text-teal-300' }}">
-                    <dt>{{ $this->summary['balance'] > 0 ? 'Balance on credit' : 'Balance' }}</dt><dd>{{ App\Support\Money::format($this->summary['balance']) }}</dd>
-                </div>
+                <div class="flex items-baseline justify-between pt-1"><dt class="font-bold">Total</dt><dd class="text-2xl font-extrabold">{{ App\Support\Money::format($this->summary['total']) }}</dd></div>
             </dl>
 
-            <x-button type="submit" variant="bright" size="lg" block target="complete" loading-text="Saving sale…" class="mt-5" :disabled="$this->cartProducts->isEmpty()">
-                Complete sale
-            </x-button>
-            @if ($this->summary['balance'] > 0 && ! $this->customer && $this->cartProducts->isNotEmpty())
-                <p class="mt-2 text-center text-[12.5px] text-amber-200">Choose a customer to leave a balance on credit.</p>
-            @endif
-        </section>
+            @foreach (['lines', 'cart', 'customer', 'discount'] as $field)
+                @error($field) <p class="mt-2 rounded-lg bg-red-50 px-3 py-2 text-[13px] text-red-700">{{ $message }}</p> @enderror
+            @endforeach
 
-        <section class="rounded-2xl border border-slate-200/80 bg-white p-5">
-            <x-textarea wire:model="notes" id="sale-notes" label="Notes (optional)" rows="2" placeholder="Delivery details, serial numbers…" />
-        </section>
-    </form>
+            <x-button size="lg" block wire:click="openPayment" target="openPayment" class="mt-3 h-14! justify-between! rounded-2xl px-5! text-base!" :disabled="$this->cartProducts->isEmpty()">
+                <span>Charge</span>
+                <span class="tabular-nums">{{ App\Support\Money::format($this->summary['total']) }}</span>
+            </x-button>
+        </div>
+    </aside>
+
+    {{-- ===================== Checkout: payment method and amount received ===================== --}}
+    <x-modal wire:model="showPaymentModal" title="Take payment" :subtitle="($this->customer?->name ?? 'Walk-in customer').' · '.$this->summary['items'].' '.Str::plural('item', $this->summary['items'])" max-width="max-w-lg">
+        <form wire:submit="complete">
+            <div class="grid gap-3.5 px-5 py-4">
+                <div class="flex items-center justify-between rounded-xl bg-brand px-4 py-2.5 text-teal-50">
+                    <span class="text-sm font-semibold text-teal-200">
+                        Amount due
+                        @if ($this->summary['discount'] > 0)
+                            <span class="block text-[11px] font-medium text-teal-100/70">after {{ App\Support\Money::format($this->summary['discount']) }} discount</span>
+                        @endif
+                    </span>
+                    <span class="text-2xl font-extrabold text-white tabular-nums">{{ App\Support\Money::format($this->summary['total']) }}</span>
+                </div>
+
+                {{-- Payment methods: one flexible row of equal-width pills --}}
+                <div class="flex flex-wrap gap-1.5" role="radiogroup" aria-label="Payment method">
+                    @foreach ($methods as $method)
+                        <label @class([
+                            'flex min-w-[6.5rem] flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-xl border px-2 py-2 text-xs font-bold whitespace-nowrap transition has-focus-visible:ring-4 has-focus-visible:ring-teal-600/20',
+                            'border-teal-600 bg-teal-50 text-teal-800 ring-1 ring-teal-600' => $paymentMethod === $method->value,
+                            'border-slate-200 text-slate-600 hover:border-slate-300' => $paymentMethod !== $method->value,
+                        ])>
+                            <input type="radio" wire:model.live="paymentMethod" value="{{ $method->value }}" class="sr-only">
+                            <x-icon :name="$method->icon()" class="size-4" />
+                            {{ $method->label() }}
+                        </label>
+                    @endforeach
+                </div>
+
+                <div class="grid gap-1.5">
+                    <div class="flex items-center justify-between">
+                        <label for="payment-amount" class="text-[13px] font-semibold text-slate-700">{{ $paymentMethod === 'cash' ? 'Cash received' : 'Amount paid' }}</label>
+                        <button type="button" wire:click="payInFull" class="text-xs font-bold text-teal-700 hover:text-teal-800">Pay in full</button>
+                    </div>
+                    <div class="relative">
+                        <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-sm font-bold text-slate-500">GH₵</span>
+                        <input wire:model.live.debounce.300ms="paymentAmount" id="payment-amount" inputmode="decimal" autocomplete="off" placeholder="0.00"
+                               x-init="$wire.$watch('showPaymentModal', open => open && $nextTick(() => { $el.focus(); $el.select() }))"
+                               class="h-12 w-full rounded-xl border border-slate-300 pr-3.5 pl-14 text-xl font-extrabold tabular-nums focus:border-teal-600 focus:ring-4 focus:ring-teal-600/15 focus:outline-none">
+                    </div>
+                    @error('paymentAmount') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+
+                    @if ($paymentMethod === 'cash' && $this->quickCashOptions !== [])
+                        <div class="flex flex-wrap gap-1.5">
+                            @foreach ($this->quickCashOptions as $option)
+                                <button type="button" wire:key="cash-{{ $option }}" wire:click="setPaymentAmount({{ $option }})"
+                                        @class([
+                                            'flex-1 rounded-lg px-2.5 py-1.5 text-xs font-bold whitespace-nowrap tabular-nums transition',
+                                            'bg-teal-700 text-white' => $this->summary['received'] === $option,
+                                            'bg-slate-100 text-slate-700 hover:bg-teal-100 hover:text-teal-900' => $this->summary['received'] !== $option,
+                                        ])>
+                                    {{ $loop->first ? 'Exact' : App\Support\Money::format($option) }}
+                                </button>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
+
+                @if (App\Enums\PaymentMethod::tryFrom($paymentMethod)?->expectsReference())
+                    <input wire:model="paymentReference" id="payment-reference" placeholder="Transaction reference (optional), e.g. MoMo ID" aria-label="Transaction reference"
+                           class="h-10 rounded-xl border border-slate-300 px-3 text-sm focus:border-teal-600 focus:ring-4 focus:ring-teal-600/15 focus:outline-none">
+                @endif
+
+                @if ($this->summary['change'] > 0)
+                    <div class="flex items-center justify-between rounded-xl bg-emerald-50 px-4 py-2 ring-1 ring-emerald-200">
+                        <span class="text-sm font-semibold text-emerald-800">Change due</span>
+                        <span class="text-lg font-extrabold text-emerald-700 tabular-nums">{{ App\Support\Money::format($this->summary['change']) }}</span>
+                    </div>
+                @elseif ($this->summary['balance'] > 0)
+                    <div class="rounded-xl bg-amber-50 px-4 py-2 ring-1 ring-amber-200">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm font-semibold text-amber-800">{{ $this->customer ? 'Balance on credit' : 'Still to pay' }}</span>
+                            <span class="text-lg font-extrabold text-amber-700 tabular-nums">{{ App\Support\Money::format($this->summary['balance']) }}</span>
+                        </div>
+                        @unless ($this->customer)
+                            <p class="text-xs text-amber-700">Walk-in sales must be paid in full. Choose a customer to sell on credit.</p>
+                        @endunless
+                    </div>
+                @endif
+
+                <details class="text-sm">
+                    <summary class="cursor-pointer text-[13px] font-semibold text-slate-500 hover:text-slate-700">Add a note</summary>
+                    <textarea wire:model="notes" id="sale-notes" rows="2" placeholder="Delivery details, serial numbers…" aria-label="Sale notes"
+                              class="mt-1.5 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:border-teal-600 focus:ring-4 focus:ring-teal-600/15 focus:outline-none"></textarea>
+                </details>
+
+                @foreach (['lines', 'cart', 'customer', 'discount', 'payment'] as $field)
+                    @error($field) <p class="rounded-lg bg-red-50 px-3 py-2 text-[13px] text-red-700">{{ $message }}</p> @enderror
+                @endforeach
+            </div>
+
+            <div class="flex gap-2 border-t border-slate-100 bg-slate-50 px-5 py-3">
+                <x-button variant="ghost" x-on:click="open = false" :loading="false">Back</x-button>
+                <x-button type="submit" target="complete" loading-text="Saving sale…" class="flex-1 justify-between! px-4!">
+                    <span>Complete sale</span>
+                    <span class="tabular-nums">{{ App\Support\Money::format($this->summary['paid']) }}</span>
+                </x-button>
+            </div>
+        </form>
+    </x-modal>
+
+    {{-- ===================== New customer (stays on the POS) ===================== --}}
+    <x-modal wire:model="showCustomerModal" title="New customer" subtitle="They will be selected for this sale." max-width="max-w-md">
+        <form wire:submit="saveNewCustomer">
+            <div class="grid gap-4 px-6 py-5">
+                <x-input wire:model="customerForm.name" id="new-customer-name" label="Full name" placeholder="e.g. Akua Serwaa" required autofocus />
+                <x-input wire:model="customerForm.phone" id="new-customer-phone" type="tel" label="Phone number" placeholder="024 412 3456" inputmode="tel" autocomplete="off" required />
+                <x-input wire:model="customerForm.address" id="new-customer-address" label="Location (optional)" placeholder="e.g. Madina, Accra" />
+                <x-input wire:model="customerForm.email" id="new-customer-email" type="email" label="Email (optional)" />
+                <label class="flex items-center gap-2 text-sm text-slate-700">
+                    <input wire:model="customerForm.isWholesale" type="checkbox" class="size-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500/30">
+                    Wholesale customer <span class="text-slate-400">(uses wholesale prices automatically)</span>
+                </label>
+            </div>
+            <div class="flex justify-end gap-3 border-t border-slate-100 bg-slate-50 px-6 py-4">
+                <x-button variant="ghost" wire:click="closeNewCustomer" :loading="false">Cancel</x-button>
+                <x-button type="submit" target="saveNewCustomer" loading-text="Saving…">Add and select</x-button>
+            </div>
+        </form>
+    </x-modal>
+
+    {{-- ===================== Sale complete ===================== --}}
+    @if ($this->completedSale)
+        @php $done = $this->completedSale; @endphp
+        <div class="fixed inset-0 z-50 grid place-items-center bg-brand/85 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="sale-complete-title"
+             x-data x-init="$nextTick(() => $refs.next.focus())">
+            <div class="w-full max-w-md rounded-3xl bg-white p-8 text-center shadow-2xl">
+                <span class="mx-auto grid size-16 place-items-center rounded-full bg-emerald-100 text-emerald-700"><x-icon name="check" class="size-8" /></span>
+                <h2 id="sale-complete-title" class="mt-4 text-2xl font-extrabold">Sale complete</h2>
+                <p class="mt-1 font-mono text-slate-500">{{ $done->receipt_number }}{{ $done->customer ? ' · '.$done->customer->name : '' }}</p>
+
+                <dl class="mt-6 grid gap-2 rounded-2xl bg-slate-50 p-4 text-sm tabular-nums">
+                    <div class="flex justify-between"><dt class="text-slate-500">Total</dt><dd class="font-bold">{{ $done->money('total') }}</dd></div>
+                    <div class="flex justify-between"><dt class="text-slate-500">Paid</dt><dd class="font-bold">{{ $done->money('paid') }}</dd></div>
+                    @if ($done->balancePesewas() > 0)
+                        <div class="flex justify-between text-amber-700"><dt>On credit</dt><dd class="font-bold">{{ $done->money('balance') }}</dd></div>
+                    @endif
+                </dl>
+
+                @if ($changeDue > 0)
+                    <div class="mt-4 rounded-2xl bg-emerald-50 p-4 ring-1 ring-emerald-200">
+                        <p class="text-sm font-semibold text-emerald-800">Change due</p>
+                        <p class="text-4xl font-extrabold text-emerald-700 tabular-nums">{{ App\Support\Money::format($changeDue) }}</p>
+                    </div>
+                @endif
+
+                <div class="mt-6 grid gap-2 sm:grid-cols-2">
+                    <a href="{{ route('sales.show', $done) }}" target="_blank" rel="noopener"
+                       class="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-5 text-sm font-bold text-slate-700 hover:bg-slate-50 focus:outline-none focus-visible:ring-4 focus-visible:ring-slate-400/30">
+                        <x-icon name="receipt" class="size-4" /> Print receipt
+                    </a>
+                    <x-button size="lg" icon="plus" wire:click="newSale" x-ref="next">New sale</x-button>
+                </div>
+            </div>
+        </div>
+    @endif
 </div>

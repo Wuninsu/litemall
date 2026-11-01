@@ -13,6 +13,7 @@ Keep the list of things the shop sells, with a photo, the current selling price 
 | View / search the list and prices | ✓ | ✓ |
 | Add a product | ✓ | — |
 | Edit a product, change its price or stock, upload a photo | ✓ | — |
+| Set the wholesale price and "wholesale from" quantity | ✓ | — |
 | Open the product details page | ✓ | ✓ |
 | Deactivate / reactivate | ✓ | — |
 
@@ -20,7 +21,7 @@ Enforced by `App\Policies\ProductPolicy` (ADR-0012). Cashiers see the list with 
 
 ## Data
 
-Table `products` (UUID key): `name`, `sku` (optional, unique, stored upper-case), `category` (optional free text), `price_pesewas` (integer, > 0), `stock_quantity` (integer ≥ 0), `description`, `image_path` (file on the `public` disk), `is_active`, `created_by` → `users.id`. See [DATABASE_SCHEMA.md](../DATABASE_SCHEMA.md) and [FINANCIAL_LOGIC.md](../FINANCIAL_LOGIC.md).
+Table `products` (UUID key): `name`, `sku` (optional, unique, stored upper-case), `category` (optional free text), `price_pesewas` (integer, > 0), `wholesale_price_pesewas` (optional, ≤ retail), `wholesale_min_quantity` (default 1), `stock_quantity` (integer ≥ 0), `description`, `image_path` (file on the `public` disk), `is_active`, `created_by` → `users.id`. See [DATABASE_SCHEMA.md](../DATABASE_SCHEMA.md) and [FINANCIAL_LOGIC.md](../FINANCIAL_LOGIC.md).
 
 ## Rules
 

@@ -81,6 +81,7 @@ Full list: [docs/BUSINESS_RULES.md](docs/BUSINESS_RULES.md) (S, R, PY rules); ca
 - Sale lines snapshot name, SKU and unit price; never read current product prices for past sales.
 - Payments are applied oldest unpaid sale first; overpayment is refused; `sales.paid_pesewas` must always equal the sum of its allocations.
 - Discounts: one per sale, ≤ subtotal; cashiers ≤ `sales.cashier_max_discount_percent`. Credit requires a customer.
+- Wholesale (ADR-0019): never compute a unit price yourself — use `Product::unitPriceFor(PriceTier, $quantity)`; record `price_tier` on the sale and each line.
 - Sales and payments are never edited or deleted. Corrections (Phase 4) must be new reversal rows (ADR-0004).
 
 ## 9. Security requirements
@@ -129,7 +130,7 @@ Create a listed-but-missing doc (see `docs/README.md`) when the first feature it
 
 ```sh
 composer run dev                         # server + Vite + queue + logs
-php artisan test --compact               # all tests (178 passing)
+php artisan test --compact               # all tests (197 passing)
 php artisan test --compact --filter=Name # narrow run
 vendor/bin/pint --dirty --format agent   # format changed PHP files (required before finishing)
 php artisan storage:link                 # once per machine, for product photos

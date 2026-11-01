@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\PriceTier;
 use App\Support\Money;
 use Database\Factories\ProductFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -12,7 +13,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Storage;
 
-#[Fillable(['name', 'sku', 'category', 'price_pesewas', 'stock_quantity', 'description', 'image_path', 'is_active', 'created_by'])]
+#[Fillable(['name', 'sku', 'category', 'price_pesewas', 'wholesale_price_pesewas', 'wholesale_min_quantity', 'stock_quantity', 'description', 'image_path', 'is_active', 'created_by'])]
 class Product extends Model
 {
     /** @use HasFactory<ProductFactory> */
@@ -37,6 +38,8 @@ class Product extends Model
     {
         return [
             'price_pesewas' => 'integer',
+            'wholesale_price_pesewas' => 'integer',
+            'wholesale_min_quantity' => 'integer',
             'stock_quantity' => 'integer',
             'is_active' => 'boolean',
         ];
@@ -58,6 +61,32 @@ class Product extends Model
     public function formattedPrice(): string
     {
         return Money::format($this->price_pesewas);
+    }
+
+    public function hasWholesalePrice(): bool
+    {
+        return $this->wholesale_price_pesewas !== null && $this->wholesale_price_pesewas > 0;
+    }
+
+    public function formattedWholesalePrice(): ?string
+    {
+        return $this->hasWholesalePrice() ? Money::format($this->wholesale_price_pesewas) : null;
+    }
+
+    /**
+     * The unit price to charge (ADR-0019). Wholesale applies only when the sale is in wholesale mode,
+     * the product has a wholesale price and the quantity reaches `wholesale_min_quantity`;
+     * otherwise the retail price is used.
+     *
+     * @return array{pesewas: int, tier: PriceTier}
+     */
+    public function unitPriceFor(PriceTier $tier, int $quantity): array
+    {
+        if ($tier === PriceTier::Wholesale && $this->hasWholesalePrice() && $quantity >= max(1, $this->wholesale_min_quantity)) {
+            return ['pesewas' => $this->wholesale_price_pesewas, 'tier' => PriceTier::Wholesale];
+        }
+
+        return ['pesewas' => $this->price_pesewas, 'tier' => PriceTier::Retail];
     }
 
     /**

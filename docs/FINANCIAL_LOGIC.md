@@ -31,7 +31,8 @@ Typing examples: `3450` → 345000 → GH₵ 3,450.00 · `899.99` → 89999 · `
 ## Sale totals (`SaleService::create`)
 
 ```
-line_total  = unit_price_pesewas × quantity          (unit price copied from the product at sale time)
+unit_price  = Product::unitPriceFor(tier, quantity)   (retail, or wholesale when the rules below allow; copied onto the line)
+line_total  = unit_price_pesewas × quantity
 subtotal    = Σ line_total
 discount    = amount in pesewas, or percentOf(subtotal, basis points)
 total       = subtotal − discount                     (0 ≤ discount ≤ subtotal)
@@ -55,6 +56,19 @@ status      = Paid if paid ≥ total · Part-paid if 0 < paid < total · Unpaid 
 
 Microwave GH₵ 899.99, discount 7.5% → 899.99 × 0.075 = 67.49925 → `percentOf(89999, 750)` = (89999 × 750 + 5000) div 10000 = 6750 → **GH₵ 67.50**; total GH₵ 832.49.
 
+### Wholesale pricing (ADR-0019)
+
+In wholesale mode each line is priced on its own: wholesale price if the product has one and the quantity reaches `wholesale_min_quantity`, else retail. Example, wholesale customer Asante Trading:
+
+| Line | Retail | Wholesale (from) | Qty | Charged | Line total |
+|---|---|---|---|---|---|
+| Binatone fan | 450.00 | 380.00 (6) | 10 | wholesale 380.00 | 3,800.00 |
+| Samsung TV | 3,450.00 | 3,200.00 (2) | 1 | retail (below minimum) | 3,450.00 |
+| Sofa | 4,200.00 | — | 1 | retail (no wholesale price) | 4,200.00 |
+| **Subtotal** | | | | | **GH₵ 11,450.00** |
+
+The POS shows the same prices before saving (it calls the same method).
+
 ### Discount rules
 
 - Never more than the subtotal (`SaleException::discountTooLarge`).
@@ -62,6 +76,8 @@ Microwave GH₵ 899.99, discount 7.5% → 899.99 × 0.075 = 67.49925 → `percen
 - The live preview on the New sale screen calls the same `discountFor()` method, so the screen and the saved sale agree.
 
 ## Payments at the counter
+
+**Cash and change (POS screen):** for Cash the cashier enters the amount handed over. The payment recorded is `min(received, total)`; `received − total` is shown as change due and is not stored. Example: total GH₵ 450.00, customer hands over GH₵ 500.00 → payment GH₵ 450.00, change GH₵ 50.00. Quick-cash buttons offer the exact total and the next round amounts above it (steps of GH₵ 10, 50, 100, 200, 500 — for GH₵ 450.00: 450, 500, 600). For other methods the amount entered is the payment.
 
 `0 ≤ payment ≤ total`. If `payment < total` a customer is required (walk-ins pay in full). A positive payment needs a method. The payment is allocated entirely to the new sale.
 
